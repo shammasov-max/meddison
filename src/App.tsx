@@ -23,8 +23,8 @@ import { AdminLayout } from './components/admin/AdminLayout';
 
 function App() {
   return (
-    <AuthProvider>
-      <TrackingScripts />
+ 
+      <TrackingScripts >
       <Suspense fallback={<div className="bg-black h-screen w-full flex items-center justify-center"><div className="w-12 h-12 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div></div>}>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -40,9 +40,8 @@ function App() {
         <Route path="/butovo" element={<Navigate to="/lounge/butovo" replace />} />
         <Route path="/select" element={<Navigate to="/lounge/select" replace />} />
 
-        {/* Admin Routes */}
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
+        {/* Admin Routes (no auth - internal use only) */}
+        <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="locations" element={<AdminLocations />} />
@@ -53,7 +52,7 @@ function App() {
         </Route>
       </Routes>
       </Suspense>
-    </AuthProvider>
+ </TrackingScripts>
   );
 }
 

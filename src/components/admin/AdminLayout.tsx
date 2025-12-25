@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { LayoutDashboard, FileText, Settings, Globe, Search, MapPin, Calendar } from 'lucide-react';
 
@@ -48,7 +47,7 @@ export const AdminLayout = () => {
           ))}
         </nav>
 
-        <div className="p-6 border-t border-white/5 space-y-2 bg-zinc-950">
+        <div className="p-6 border-t border-white/5 bg-zinc-950">
           <Link
             to="/"
             target="_blank"
@@ -57,13 +56,6 @@ export const AdminLayout = () => {
             <Globe size={20} />
             На сайт
           </Link>
-          <button
-            onClick={logout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-colors"
-          >
-            <LogOut size={20} />
-            Выйти
-          </button>
         </div>
       </aside>
 
