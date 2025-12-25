@@ -1,0 +1,148 @@
+{
+  "meta": {
+    "projectName": "Medisson Lounge",
+    "generated": "2025-12-25",
+    "domain": "medisson-lounge.ru",
+    "locale": "ru_RU",
+    "description": "Premium lounge bar website for Medisson Lounge chain in Moscow"
+  },
+  "stack": {
+    "framework": "React 18.3.1",
+    "buildTool": "Vite 7.0.0",
+    "language": "TypeScript 5.8.3",
+    "styling": "Tailwind CSS 3.4.17",
+    "routing": "React Router 6.30.1",
+    "animations": "Framer Motion 11.0.8"
+  },
+  "entryPoints": {
+    "main": "src/main.tsx",
+    "routes": "src/App.tsx",
+    "html": "index.html",
+    "viteConfig": "vite.config.ts"
+  },
+  "pages": {
+    "public": [
+      { "name": "Home", "path": "src/pages/Home.tsx", "route": "/" },
+      { "name": "LocationPage", "path": "src/pages/LocationPage.tsx", "route": "/lounge/:slug" },
+      { "name": "NewsPage", "path": "src/pages/NewsPage.tsx", "route": "/news" },
+      { "name": "NewsDetailPage", "path": "src/pages/NewsDetailPage.tsx", "route": "/news/:slug" },
+      { "name": "LoyaltyPage", "path": "src/pages/LoyaltyPage.tsx", "route": "/loyalty" },
+      { "name": "PrivacyPolicy", "path": "src/pages/PrivacyPolicy.tsx", "route": "/privacy" }
+    ],
+    "admin": [
+      { "name": "AdminDashboard", "path": "src/pages/admin/AdminDashboard.tsx", "route": "/admin/dashboard" },
+      { "name": "AdminLocations", "path": "src/pages/admin/AdminLocations.tsx", "route": "/admin/locations" },
+      { "name": "AdminNews", "path": "src/pages/admin/AdminNews.tsx", "route": "/admin/news" },
+      { "name": "AdminContent", "path": "src/pages/admin/AdminContent.tsx", "route": "/admin/content" },
+      { "name": "AdminSEO", "path": "src/pages/admin/AdminSEO.tsx", "route": "/admin/seo" },
+      { "name": "AdminBookingSettings", "path": "src/pages/admin/AdminBookingSettings.tsx", "route": "/admin/booking-settings" }
+    ]
+  },
+  "components": {
+    "home": [
+      "Hero.tsx",
+      "About.tsx",
+      "Advantages.tsx",
+      "Atmosphere.tsx",
+      "Locations.tsx",
+      "MenuCategories.tsx",
+      "BookingCTA.tsx"
+    ],
+    "layout": ["Navbar.tsx", "Footer.tsx"],
+    "ui": [
+      "BookingModal.tsx",
+      "BookingSuccess.tsx",
+      "GlowButton.tsx",
+      "Preloader.tsx",
+      "ErrorBoundary.tsx",
+      "ImageUpload.tsx",
+      "TrackingScripts.tsx",
+      "JsonLdInjector.tsx"
+    ],
+    "loyalty": ["LoyaltyIntro.tsx", "LoyaltyLevels.tsx", "LoyaltyCTA.tsx"],
+    "admin": ["AdminLayout.tsx", "TelegramChat.tsx"]
+  },
+  "services": [
+    { "name": "contentService", "path": "src/services/contentService.ts", "dataSource": "/data/content.json" },
+    { "name": "locationsService", "path": "src/services/locationsService.ts", "dataSource": "/data/locations.json" },
+    { "name": "newsService", "path": "src/services/newsService.ts", "dataSource": "/data/news.json" }
+  ],
+  "hooks": [
+    { "name": "useContent", "path": "src/hooks/useContent.ts", "purpose": "Reactive content loading" }
+  ],
+  "dataFiles": {
+    "content": "public/data/content.json",
+    "locations": "public/data/locations.json",
+    "news": "public/data/news.json",
+    "fallback": "src/data/content.ts"
+  },
+  "locations": [
+    { "id": 1, "slug": "butovo", "name": "Medisson Butovo", "status": "active" },
+    { "id": 2, "slug": "select", "name": "Medisson Select Ramenki", "status": "comingSoon" }
+  ],
+  "routes": {
+    "public": ["/", "/news", "/news/:slug", "/lounge/:slug", "/loyalty", "/privacy"],
+    "redirects": {
+      "/butovo": "/lounge/butovo",
+      "/select": "/lounge/select"
+    },
+    "admin": [
+      "/admin/login",
+      "/admin/dashboard",
+      "/admin/locations",
+      "/admin/news",
+      "/admin/content",
+      "/admin/seo",
+      "/admin/booking-settings"
+    ]
+  },
+  "config": {
+    "vite": {
+      "devPort": 5173,
+      "devHost": "127.0.0.1",
+      "apiProxy": "/api -> http://localhost:3000"
+    },
+    "tailwind": {
+      "accentColor": "#d4af37",
+      "fonts": {
+        "sans": "Inter",
+        "serif": "Playfair Display"
+      }
+    }
+  },
+  "dependencies": {
+    "runtime": {
+      "react": "^18.3.1",
+      "react-dom": "^18.3.1",
+      "react-router-dom": "^6.30.1",
+      "framer-motion": "^11.0.8",
+      "react-helmet-async": "^2.0.5",
+      "lucide-react": "^0.533.0",
+      "react-quill": "^2.0.0",
+      "date-fns": "^4.1.0"
+    },
+    "dev": {
+      "vite": "^7.0.0",
+      "typescript": "~5.8.3",
+      "tailwindcss": "^3.4.17",
+      "@vitejs/plugin-react": "^4.5.2"
+    }
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "assets": {
+    "images": "public/assets/images/",
+    "locations": "public/assets/locations/",
+    "static": ["robots.txt", "sitemap.xml"]
+  },
+  "fileCount": {
+    "pages": 10,
+    "components": 22,
+    "services": 3,
+    "hooks": 1,
+    "total": 42
+  }
+}

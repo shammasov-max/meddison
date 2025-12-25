@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  
+  <!-- Главная страница -->
+  <url>
+    <loc>https://medisson-lounge.ru/</loc>
+    <lastmod>2025-12-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://medisson-lounge.ru/assets/images/og-image.jpg</image:loc>
+      <image:title>Medisson Lounge — премиальный лаунж-бар в Москве</image:title>
+    </image:image>
+  </url>
+  
+  <!-- Страница новостей -->
+  <url>
+    <loc>https://medisson-lounge.ru/news</loc>
+    <lastmod>2025-12-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- Программа лояльности -->
+  <url>
+    <loc>https://medisson-lounge.ru/loyalty</loc>
+    <lastmod>2025-12-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- Локация Бутово -->
+  <url>
+    <loc>https://medisson-lounge.ru/lounge/butovo</loc>
+    <lastmod>2025-12-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://medisson-lounge.ru/assets/locations/butovo-main-new.png</image:loc>
+      <image:title>Medisson Бутово — лаунж-бар в Северном Бутово</image:title>
+    </image:image>
+  </url>
+  
+  <!-- Локация Select Раменки -->
+  <url>
+    <loc>https://medisson-lounge.ru/lounge/select</loc>
+    <lastmod>2025-12-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://medisson-lounge.ru/assets/locations/select-main-new.png</image:loc>
+      <image:title>Medisson Select Раменки — премиальный лаунж-бар</image:title>
+    </image:image>
+  </url>
+  
+  <!-- Политика конфиденциальности -->
+  <url>
+    <loc>https://medisson-lounge.ru/privacy</loc>
+    <lastmod>2025-01-01</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  
+</urlset>

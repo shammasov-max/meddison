@@ -1,0 +1,67 @@
+# Robots.txt for Medisson Lounge
+# https://medisson-lounge.ru
+
+# Main search engine crawlers
+User-agent: *
+Allow: /
+Allow: /lounge/
+Allow: /news/
+Allow: /loyalty
+
+# Disallow admin and private areas
+Disallow: /admin/
+Disallow: /api/
+Disallow: /data/
+
+# Disallow duplicate content and system files
+Disallow: /*?*
+Disallow: /*.json$
+Disallow: /*.js.map$
+
+# Yandex specific directives
+User-agent: Yandex
+Allow: /
+Allow: /lounge/
+Allow: /news/
+Allow: /loyalty
+Disallow: /admin/
+Disallow: /api/
+Disallow: /data/
+# Crawl-delay for Yandex (in seconds)
+Crawl-delay: 1.0
+# Clean-param for removing tracking parameters
+Clean-param: utm_source&utm_medium&utm_campaign&utm_content&utm_term
+
+# Google specific directives
+User-agent: Googlebot
+Allow: /
+Allow: /lounge/
+Allow: /news/
+Allow: /loyalty
+Disallow: /admin/
+Disallow: /api/
+Disallow: /data/
+
+# Googlebot for images
+User-agent: Googlebot-Image
+Allow: /assets/
+Disallow: /admin/
+
+# Block bad bots
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+# Sitemap location
+Sitemap: https://medisson-lounge.ru/sitemap.xml
+
+# Host directive for Yandex (canonical domain)
+Host: https://medisson-lounge.ru
