@@ -9,6 +9,9 @@ import { existsSync, createWriteStream } from 'node:fs';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
+// Telegram service
+import * as telegram from './telegram.js';
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = 3001;
 const DATA_PATH = join(__dirname, '../public/data/data.json');
@@ -57,7 +60,12 @@ const ContentSchema = z.object({
   value: z.record(z.unknown()),
 });
 
-type Booking = z.infer<typeof BookingSchema> & { id: number; createdAt: string };
+type Booking = z.infer<typeof BookingSchema> & {
+  id: number;
+  createdAt: string;
+  status: 'pending' | 'handled';
+  telegramMessageIds?: Record<string, number>;
+};
 type BookingSettings = z.infer<typeof BookingSettingsSchema>;
 
 // ==================== JSON FILE HELPERS ====================
@@ -229,7 +237,23 @@ app.post('/api/bookings', async (c) => {
       ...parsed,
       id: bookings.length > 0 ? Math.max(...bookings.map(b => b.id)) + 1 : 1,
       createdAt: new Date().toISOString(),
+      status: 'pending',
     };
+
+    // Send Telegram notification
+    const telegramMessageIds = await telegram.sendBookingNotification({
+      id: newBooking.id,
+      location: newBooking.location,
+      date: newBooking.date,
+      time: newBooking.time,
+      guests: newBooking.guests,
+      name: newBooking.name,
+      phone: newBooking.phone,
+    });
+
+    if (Object.keys(telegramMessageIds).length > 0) {
+      newBooking.telegramMessageIds = telegramMessageIds;
+    }
 
     bookings.push(newBooking);
     await writeJsonFile('bookings.json', bookings);
@@ -249,6 +273,29 @@ app.post('/api/bookings', async (c) => {
 app.get('/api/bookings', async (c) => {
   const bookings = await readJsonFile<Booking[]>('bookings.json', []);
   return c.json(bookings);
+});
+
+app.put('/api/bookings/:id/status', async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'));
+    const body = await c.req.json<{ status: 'pending' | 'handled' }>();
+
+    const bookings = await readJsonFile<Booking[]>('bookings.json', []);
+    const booking = bookings.find(b => b.id === id);
+
+    if (!booking) {
+      return c.json({ error: 'Booking not found' }, 404);
+    }
+
+    booking.status = body.status;
+    await writeJsonFile('bookings.json', bookings);
+
+    console.log(`[server] Booking ${id} status updated to: ${body.status}`);
+    return c.json({ success: true, booking });
+  } catch (error) {
+    console.error('[server] Status update error:', error);
+    return c.json({ error: 'Failed to update status' }, 500);
+  }
 });
 
 // ==================== BOOKING SETTINGS API ====================
@@ -317,18 +364,38 @@ app.put('/api/booking-settings/:id', async (c) => {
 
     const settings = await readJsonFile<BookingSettings[]>('booking_settings.json', defaultBookingSettings);
 
+    let savedSettings: BookingSettings;
     const index = settings.findIndex(s => s.id === id);
     if (index >= 0) {
       settings[index] = { ...parsed, id };
-      await writeJsonFile('booking_settings.json', settings);
-      return c.json(settings[index]);
+      savedSettings = settings[index];
     } else {
       // Create new with specified id
-      const newSettings: BookingSettings = { ...parsed, id };
-      settings.push(newSettings);
-      await writeJsonFile('booking_settings.json', settings);
-      return c.json(newSettings);
+      savedSettings = { ...parsed, id };
+      settings.push(savedSettings);
     }
+
+    await writeJsonFile('booking_settings.json', settings);
+
+    // Auto-reconfigure Telegram bot when main settings (id=1 or location_slug='all') are saved
+    if (savedSettings.location_slug === 'all' || savedSettings.id === 1) {
+      console.log('[server] Main settings updated, reconfiguring Telegram bot...');
+      try {
+        const result = await telegram.reconfigure(
+          savedSettings.telegram_bot_token || null,
+          savedSettings.telegram_chat_id || null
+        );
+        if (result.success) {
+          console.log(`[server] Telegram bot reconfigured: ${result.botName || 'stopped'}`);
+        } else {
+          console.log(`[server] Telegram reconfiguration failed: ${result.error}`);
+        }
+      } catch (err) {
+        console.error('[server] Error reconfiguring Telegram:', err);
+      }
+    }
+
+    return c.json(savedSettings);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return c.json({ error: 'Validation failed', details: error.errors }, 400);
@@ -364,14 +431,117 @@ app.get('/api/content/:key', async (c) => {
   return c.json(content[key] || null);
 });
 
-// ==================== TELEGRAM SETUP API (MOCKED) ====================
+// ==================== TELEGRAM API ====================
 
+// Get Telegram status
+app.get('/api/telegram/status', async (c) => {
+  const status = telegram.getStatus();
+  const subscribers = await telegram.getSubscribers();
+  return c.json({
+    ...status,
+    subscribersCount: subscribers.length,
+  });
+});
+
+// Get subscribers list
+app.get('/api/telegram/subscribers', async (c) => {
+  const subscribers = await telegram.getSubscribers();
+  return c.json(subscribers);
+});
+
+// Configure bot token (legacy - use /reconfigure instead)
+app.post('/api/telegram/configure', async (c) => {
+  try {
+    const body = await c.req.json<{ token: string; chatId?: string }>();
+    telegram.configure(body.token, body.chatId || null);
+
+    // Test connection
+    const test = await telegram.testConnection();
+    if (test.ok) {
+      return c.json({ success: true, botName: test.botName });
+    } else {
+      return c.json({ success: false, error: test.error }, 400);
+    }
+  } catch (error) {
+    return c.json({ error: 'Failed to configure' }, 500);
+  }
+});
+
+// Dynamic reconfiguration (no server restart needed)
+app.post('/api/telegram/reconfigure', async (c) => {
+  try {
+    const body = await c.req.json<{ token: string | null; chatId: string | null }>();
+    console.log('[server] Telegram reconfigure request:', {
+      hasToken: !!body.token,
+      chatId: body.chatId || 'none',
+    });
+
+    const result = await telegram.reconfigure(body.token, body.chatId);
+    if (result.success) {
+      return c.json({
+        success: true,
+        botName: result.botName,
+        status: telegram.getStatus(),
+      });
+    } else {
+      return c.json({ success: false, error: result.error }, 400);
+    }
+  } catch (error) {
+    console.error('[server] Telegram reconfigure error:', error);
+    return c.json({ error: 'Failed to reconfigure' }, 500);
+  }
+});
+
+// Validate token without configuring
+app.post('/api/telegram/validate', async (c) => {
+  try {
+    const body = await c.req.json<{ token: string }>();
+    const result = await telegram.validateToken(body.token);
+    return c.json(result);
+  } catch (error) {
+    return c.json({ valid: false, error: 'Validation failed' }, 500);
+  }
+});
+
+// Send test message to chat
+app.post('/api/telegram/test-message', async (c) => {
+  try {
+    const body = await c.req.json<{ chatId: string }>();
+    const result = await telegram.sendTestMessage(body.chatId);
+    return c.json(result);
+  } catch (error) {
+    return c.json({ ok: false, error: 'Test message failed' }, 500);
+  }
+});
+
+// Start polling
+app.post('/api/telegram/start', async (c) => {
+  const started = await telegram.startPolling();
+  return c.json({ success: started, polling: telegram.isPollingActive() });
+});
+
+// Stop polling
+app.post('/api/telegram/stop', async (c) => {
+  telegram.stopPolling();
+  return c.json({ success: true, polling: false });
+});
+
+// Test connection
+app.get('/api/telegram/test', async (c) => {
+  const result = await telegram.testConnection();
+  return c.json(result);
+});
+
+// Legacy setup endpoint (for backwards compatibility)
 app.post('/api/telegram/setup', async (c) => {
-  console.log('[server] Telegram webhook setup requested (mocked)');
+  console.log('[server] Telegram setup requested');
+  const status = telegram.getStatus();
   return c.json({
     telegram_response: {
-      ok: true,
-      description: 'Webhook setup mocked successfully (local development)',
+      ok: status.configured,
+      description: status.configured
+        ? 'Bot is configured. Use /start, /stop endpoints to control polling.'
+        : 'Bot not configured. Use /api/telegram/configure first.',
     },
   });
 });
@@ -382,6 +552,51 @@ app.notFound((c) => {
   return c.json({ error: 'Not found' }, 404);
 });
 
+// ==================== TELEGRAM INITIALIZATION ====================
+
+// Register callback for handling booking status updates from Telegram
+telegram.setBookingHandledCallback(async (bookingId: number, handledBy: string) => {
+  const bookings = await readJsonFile<Booking[]>('bookings.json', []);
+  const booking = bookings.find(b => b.id === bookingId);
+
+  if (booking) {
+    booking.status = 'handled';
+    await writeJsonFile('bookings.json', bookings);
+    console.log(`[server] Booking ${bookingId} marked as handled by ${handledBy}`);
+  }
+});
+
+// Auto-configure bot from saved settings
+async function initTelegram() {
+  try {
+    const settings = await readJsonFile<BookingSettings[]>('booking_settings.json', []);
+    // Find main settings (location_slug='all' or first item)
+    const mainSettings = settings.find(s => s.location_slug === 'all') || settings[0];
+
+    if (mainSettings?.telegram_bot_token) {
+      console.log('[server] Found Telegram settings, initializing...');
+      const result = await telegram.reconfigure(
+        mainSettings.telegram_bot_token,
+        mainSettings.telegram_chat_id || null
+      );
+      if (result.success) {
+        console.log(`[server] Telegram bot started: @${result.botName}`);
+        if (mainSettings.telegram_chat_id) {
+          console.log(`[server] Telegram notifications target: ${mainSettings.telegram_chat_id}`);
+        } else {
+          console.log('[server] Telegram notifications: subscribers only');
+        }
+      } else {
+        console.log('[server] Telegram bot token invalid:', result.error);
+      }
+    } else {
+      console.log('[server] Telegram bot not configured (no token in settings)');
+    }
+  } catch (error) {
+    console.error('[server] Failed to init Telegram:', error);
+  }
+}
+
 // ==================== START SERVER ====================
 
 console.log(`[server] Starting HonoJS server on port ${PORT}...`);
@@ -389,7 +604,7 @@ console.log(`[server] Starting HonoJS server on port ${PORT}...`);
 serve({
   fetch: app.fetch,
   port: PORT,
-}, (info) => {
+}, async (info) => {
   console.log(`[server] HonoJS API running on http://localhost:${info.port}`);
   console.log(`[server] Data file: ${DATA_PATH}`);
   console.log(`[server] Uploads: ${UPLOADS_PATH}`);
@@ -398,15 +613,17 @@ serve({
   console.log('  GET  /api/data');
   console.log('  POST /api/data');
   console.log('  POST /api/upload');
-  console.log('  POST /api/upload-url (legacy)');
-  console.log('  POST /api/download-url (legacy)');
   console.log('  POST /api/bookings');
   console.log('  GET  /api/bookings');
+  console.log('  PUT  /api/bookings/:id/status');
   console.log('  GET  /api/booking-settings');
-  console.log('  GET  /api/booking-settings/all');
-  console.log('  PUT  /api/booking-settings');
   console.log('  PUT  /api/booking-settings/:id');
-  console.log('  POST /api/content');
-  console.log('  GET  /api/content/:key');
-  console.log('  POST /api/telegram/setup (mocked)');
+  console.log('  GET  /api/telegram/status');
+  console.log('  GET  /api/telegram/subscribers');
+  console.log('  POST /api/telegram/configure');
+  console.log('  POST /api/telegram/start');
+  console.log('  POST /api/telegram/stop');
+
+  // Initialize Telegram after server starts
+  await initTelegram();
 });

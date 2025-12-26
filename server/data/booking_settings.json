@@ -1,0 +1,36 @@
+[
+  {
+    "id": 1,
+    "location_slug": "all",
+    "title": "Medisson Lounge",
+    "description": "Создаем атмосферу, в которую хочется возвращаться.",
+    "image": null,
+    "working_hours_start": "11:00",
+    "working_hours_end": "05:00",
+    "time_slot_interval": 30,
+    "max_guests": 20,
+    "min_guests": 1,
+    "booking_rules": null,
+    "contact_phone": null,
+    "contact_email": null,
+    "telegram_chat_id": "123456789",
+    "telegram_bot_token": "8271756035:AAHuqRJObSMSdA9SxwTcj-5JHqISvNkjBzk"
+  },
+  {
+    "id": 2,
+    "location_slug": "butovo",
+    "title": "Medisson «Бутово»",
+    "description": "Создаем атмосферу, в которую хочется возвращаться.",
+    "image": null,
+    "working_hours_start": "11:00",
+    "working_hours_end": "05:00",
+    "time_slot_interval": 30,
+    "max_guests": 20,
+    "min_guests": 1,
+    "booking_rules": null,
+    "contact_phone": "к4545",
+    "contact_email": null,
+    "telegram_chat_id": null,
+    "telegram_bot_token": null
+  }
+]

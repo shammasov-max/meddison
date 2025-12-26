@@ -1,10 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { GlowButton } from '../../components/ui/GlowButton';
-import { Save, Clock, Users, Phone, Mail, FileText, Image, Building, MapPin, MessageCircle } from 'lucide-react';
+import { Save, Clock, Users, Phone, Mail, FileText, Image, Building, MapPin, MessageCircle, CheckCircle, XCircle, Send, RefreshCw, Loader2 } from 'lucide-react';
 import { useEnterSave } from '../../hooks/useEnterSave';
 
 const API_URL = '/api/booking-settings';
 const ALL_SETTINGS_URL = '/api/booking-settings/all';
+const TELEGRAM_STATUS_URL = '/api/telegram/status';
+const TELEGRAM_VALIDATE_URL = '/api/telegram/validate';
+const TELEGRAM_TEST_MESSAGE_URL = '/api/telegram/test-message';
+
+interface TelegramStatus {
+  configured: boolean;
+  polling: boolean;
+  token: string | null;
+  chatId: string | null;
+  subscribersCount: number;
+}
 
 interface BookingSettings {
   id: number;
@@ -55,7 +66,14 @@ export const AdminBookingSettings = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  
+
+  // Telegram state
+  const [telegramStatus, setTelegramStatus] = useState<TelegramStatus | null>(null);
+  const [isValidatingToken, setIsValidatingToken] = useState(false);
+  const [tokenValidation, setTokenValidation] = useState<{ valid: boolean; botName?: string; error?: string } | null>(null);
+  const [isSendingTestMessage, setIsSendingTestMessage] = useState(false);
+  const [testMessageResult, setTestMessageResult] = useState<{ ok: boolean; error?: string } | null>(null);
+
   const locationOptions: LocationOption[] = [
     { slug: 'all', name: 'Общие настройки (все заведения)' },
     { slug: 'butovo', name: 'Medisson «Бутово»' },
@@ -64,6 +82,7 @@ export const AdminBookingSettings = () => {
 
   useEffect(() => {
     fetchAllSettings();
+    fetchTelegramStatus();
   }, []);
   
   useEffect(() => {
@@ -108,6 +127,58 @@ export const AdminBookingSettings = () => {
     }
   };
 
+  const fetchTelegramStatus = async () => {
+    try {
+      const response = await fetch(TELEGRAM_STATUS_URL);
+      if (response.ok) {
+        const data = await response.json();
+        setTelegramStatus(data);
+      }
+    } catch (err) {
+      console.error('Error fetching Telegram status:', err);
+    }
+  };
+
+  const validateToken = async () => {
+    if (!settings.telegram_bot_token) return;
+
+    setIsValidatingToken(true);
+    setTokenValidation(null);
+    try {
+      const response = await fetch(TELEGRAM_VALIDATE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: settings.telegram_bot_token }),
+      });
+      const data = await response.json();
+      setTokenValidation(data);
+    } catch (err) {
+      setTokenValidation({ valid: false, error: 'Ошибка проверки' });
+    } finally {
+      setIsValidatingToken(false);
+    }
+  };
+
+  const sendTestMessage = async () => {
+    if (!settings.telegram_chat_id) return;
+
+    setIsSendingTestMessage(true);
+    setTestMessageResult(null);
+    try {
+      const response = await fetch(TELEGRAM_TEST_MESSAGE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId: settings.telegram_chat_id }),
+      });
+      const data = await response.json();
+      setTestMessageResult(data);
+    } catch (err) {
+      setTestMessageResult({ ok: false, error: 'Ошибка отправки' });
+    } finally {
+      setIsSendingTestMessage(false);
+    }
+  };
+
   const doSave = useCallback(async () => {
     setIsSaving(true);
     setError(null);
@@ -138,6 +209,9 @@ export const AdminBookingSettings = () => {
         });
         setSuccessMessage('Настройки успешно сохранены!');
         setTimeout(() => setSuccessMessage(null), 3000);
+
+        // Refresh Telegram status after save (bot reconfigures automatically)
+        setTimeout(() => fetchTelegramStatus(), 500);
       } else {
         const errorText = await response.text();
         console.error('Failed to save booking settings:', response.status, errorText);
@@ -227,44 +301,149 @@ export const AdminBookingSettings = () => {
 
         {/* Telegram Settings Section */}
         <section className="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-6">
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <MessageCircle size={20} className="text-blue-400" />
-            Telegram уведомления
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <MessageCircle size={20} className="text-blue-400" />
+              Telegram уведомления
+            </h2>
+            {telegramStatus && (
+              <div className="flex items-center gap-2">
+                {telegramStatus.polling ? (
+                  <span className="flex items-center gap-1.5 text-sm text-green-400">
+                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                    Бот активен
+                  </span>
+                ) : telegramStatus.configured ? (
+                  <span className="flex items-center gap-1.5 text-sm text-yellow-400">
+                    <span className="w-2 h-2 bg-yellow-400 rounded-full" />
+                    Бот настроен
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1.5 text-sm text-white/40">
+                    <span className="w-2 h-2 bg-white/40 rounded-full" />
+                    Не настроен
+                  </span>
+                )}
+                <button
+                  onClick={fetchTelegramStatus}
+                  className="p-1 text-white/40 hover:text-white transition-colors"
+                  title="Обновить статус"
+                >
+                  <RefreshCw size={14} />
+                </button>
+              </div>
+            )}
+          </div>
           <p className="text-white/50 text-sm mb-4">
-            Укажите данные Telegram бота для получения уведомлений о бронированиях в это заведение
+            Укажите данные Telegram бота для получения уведомлений о бронированиях. Бот перезапустится автоматически при сохранении.
           </p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-white/60 mb-2">
-                Chat ID
-              </label>
-              <input
-                type="text"
-                value={settings.telegram_chat_id || ''}
-                onChange={(e) => handleChange('telegram_chat_id', e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder:text-white/30 focus:border-blue-500/50 focus:outline-none transition-colors"
-                placeholder="-1001234567890"
-              />
-              <p className="text-xs text-white/30 mt-1">ID чата или группы для уведомлений</p>
-            </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-white/60 mb-2">
                 Bot Token
               </label>
-              <input
-                type="password"
-                value={settings.telegram_bot_token || ''}
-                onChange={(e) => handleChange('telegram_bot_token', e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder:text-white/30 focus:border-blue-500/50 focus:outline-none transition-colors"
-                placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="password"
+                  value={settings.telegram_bot_token || ''}
+                  onChange={(e) => {
+                    handleChange('telegram_bot_token', e.target.value);
+                    setTokenValidation(null);
+                  }}
+                  className="flex-1 bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder:text-white/30 focus:border-blue-500/50 focus:outline-none transition-colors"
+                  placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
+                />
+                <button
+                  onClick={validateToken}
+                  disabled={!settings.telegram_bot_token || isValidatingToken}
+                  className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 rounded-xl text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                  title="Проверить токен"
+                >
+                  {isValidatingToken ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : tokenValidation?.valid ? (
+                    <CheckCircle size={16} className="text-green-400" />
+                  ) : tokenValidation?.error ? (
+                    <XCircle size={16} className="text-red-400" />
+                  ) : (
+                    <CheckCircle size={16} />
+                  )}
+                </button>
+              </div>
+              {tokenValidation && (
+                <p className={`text-xs mt-1 ${tokenValidation.valid ? 'text-green-400' : 'text-red-400'}`}>
+                  {tokenValidation.valid ? `✓ @${tokenValidation.botName}` : tokenValidation.error}
+                </p>
+              )}
               <p className="text-xs text-white/30 mt-1">Токен от @BotFather</p>
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white/60 mb-2">
+                Chat ID (группа/канал)
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={settings.telegram_chat_id || ''}
+                  onChange={(e) => {
+                    handleChange('telegram_chat_id', e.target.value);
+                    setTestMessageResult(null);
+                  }}
+                  className="flex-1 bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder:text-white/30 focus:border-blue-500/50 focus:outline-none transition-colors"
+                  placeholder="-1001234567890"
+                />
+                <button
+                  onClick={sendTestMessage}
+                  disabled={!settings.telegram_chat_id || !telegramStatus?.configured || isSendingTestMessage}
+                  className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 rounded-xl text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                  title="Отправить тестовое сообщение"
+                >
+                  {isSendingTestMessage ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : testMessageResult?.ok ? (
+                    <CheckCircle size={16} className="text-green-400" />
+                  ) : testMessageResult?.error ? (
+                    <XCircle size={16} className="text-red-400" />
+                  ) : (
+                    <Send size={16} />
+                  )}
+                </button>
+              </div>
+              {testMessageResult && (
+                <p className={`text-xs mt-1 ${testMessageResult.ok ? 'text-green-400' : 'text-red-400'}`}>
+                  {testMessageResult.ok ? '✓ Сообщение отправлено' : testMessageResult.error}
+                </p>
+              )}
+              <p className="text-xs text-white/30 mt-1">Если указан — уведомления идут сюда. Если нет — подписчикам бота.</p>
+            </div>
           </div>
-          
+
+          {/* Status info */}
+          {telegramStatus && (
+            <div className="mt-4 p-3 bg-white/5 rounded-lg text-sm grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div>
+                <span className="text-white/40">Статус:</span>
+                <span className={`ml-2 ${telegramStatus.polling ? 'text-green-400' : 'text-white/60'}`}>
+                  {telegramStatus.polling ? 'Активен' : 'Остановлен'}
+                </span>
+              </div>
+              <div>
+                <span className="text-white/40">Подписчики:</span>
+                <span className="ml-2 text-white/80">{telegramStatus.subscribersCount}</span>
+              </div>
+              <div>
+                <span className="text-white/40">Чат:</span>
+                <span className="ml-2 text-white/80">{telegramStatus.chatId || '—'}</span>
+              </div>
+              <div>
+                <span className="text-white/40">Токен:</span>
+                <span className="ml-2 text-white/80">{telegramStatus.token || '—'}</span>
+              </div>
+            </div>
+          )}
+
           <div className="mt-4 p-3 bg-white/5 rounded-lg text-sm text-white/50">
             <strong className="text-white/70">Как получить:</strong>
             <ol className="list-decimal list-inside mt-2 space-y-1">
