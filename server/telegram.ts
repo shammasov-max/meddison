@@ -438,16 +438,25 @@ async function handleMessage(message: TelegramUpdate['message']): Promise<void> 
   const firstName = message.from.first_name;
   const username = message.from.username;
 
+  console.log(`[telegram] 💬 MESSAGE RECEIVED:`);
+  console.log(`[telegram]   From: ${firstName} ${username ? `(@${username})` : ''}`);
+  console.log(`[telegram]   Chat ID: ${chatId}`);
+  console.log(`[telegram]   Text: "${text}"`);
+
   if (text === '/start') {
+    console.log(`[telegram] 🆕 /start command - attempting to add subscriber...`);
     const added = await addSubscriber(chatId, username, firstName);
+    console.log(`[telegram] ${added ? '✅ NEW SUBSCRIBER ADDED' : '⚠️ Subscriber already exists'}: chatId=${chatId}`);
+
     const responseText = added
       ? `Привет, ${firstName}! 👋\n\nВы подписаны на уведомления о бронированиях Medisson Lounge.\n\nВы будете получать сообщения о новых бронях с кнопкой "Перезвонено" для отметки статуса.`
       : `${firstName}, вы уже подписаны на уведомления! ✅`;
 
-    await telegramRequest('sendMessage', {
+    const sendResult = await telegramRequest('sendMessage', {
       chat_id: chatId,
       text: responseText,
     });
+    console.log(`[telegram] Response sent: ${sendResult.ok ? 'OK' : 'FAILED - ' + sendResult.description}`);
   } else if (text === '/stop') {
     const removed = await removeSubscriber(chatId);
     const responseText = removed
@@ -501,11 +510,16 @@ async function pollUpdates(): Promise<void> {
     });
 
     if (result.ok && result.result) {
+      if (result.result.length > 0) {
+        console.log(`[telegram] 📨 Received ${result.result.length} update(s)`);
+      }
+
       for (const update of result.result) {
         lastUpdateId = Math.max(lastUpdateId, update.update_id);
 
         try {
           if (update.callback_query) {
+            console.log(`[telegram] 🔘 Callback query received from: ${update.callback_query.from.first_name}`);
             await handleCallbackQuery(update.callback_query);
           } else if (update.message) {
             await handleMessage(update.message);
