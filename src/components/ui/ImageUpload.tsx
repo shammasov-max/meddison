@@ -39,54 +39,28 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     setUploadProgress(10);
 
     try {
-      // Step 1: Get presigned upload URL from backend
-      const presignRes = await fetch('https://backend.youware.com/api/upload-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          filename: file.name,
-          contentType: file.type,
-          folder
-        })
-      });
+      // Create FormData with file and folder
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', folder);
 
-      if (!presignRes.ok) {
-        const errorData = await presignRes.json();
-        throw new Error(errorData.error || 'Ошибка получения URL для загрузки');
-      }
-
-      const { url: uploadUrl, requiredHeaders, file_path } = await presignRes.json();
       setUploadProgress(30);
 
-      // Step 2: Upload file directly to storage via presigned URL
-      const uploadRes = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: {
-          ...(requiredHeaders || {}),
-        },
-        body: file
+      // Upload directly to local API
+      const uploadRes = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
       });
 
       if (!uploadRes.ok) {
-        throw new Error('Ошибка загрузки файла');
+        const errorData = await uploadRes.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Ошибка загрузки файла');
       }
 
       setUploadProgress(70);
 
-      // Step 3: Get public download URL
-      const downloadRes = await fetch('https://backend.youware.com/api/download-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: file_path })
-      });
-
-      if (downloadRes.ok) {
-        const { url: publicUrl } = await downloadRes.json();
-        onChange(publicUrl);
-      } else {
-        // Fallback: store the file path directly and show in preview
-        onChange(file_path);
-      }
+      const { publicUrl } = await uploadRes.json();
+      onChange(publicUrl);
 
       setUploadProgress(100);
       setTimeout(() => {

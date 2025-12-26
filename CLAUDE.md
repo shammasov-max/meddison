@@ -2,6 +2,18 @@
 
 > Project index and AI assistant instructions for Claude Code
 
+## Code Reading Protocol
+
+**BEFORE reading any source code, ALWAYS:**
+1. Read `PROJECT_INDEX.md` first - it contains the complete project structure,
+   file locations, data architecture, and module reference
+2. Use the index to identify which specific files are relevant to the task
+3. Only read source files if the index doesn't provide enough context
+
+This reduces token usage by 90%+ and ensures you have accurate project context.
+
+---
+
 ## Quick Reference
 
 | Resource | Path |
@@ -45,17 +57,14 @@ src/
 │   ├── ui/           # Reusable UI (BookingModal, GlowButton, etc.)
 │   ├── loyalty/      # Loyalty program components
 │   └── admin/        # Admin panel components
-├── services/         # API services (content, locations, news)
-├── hooks/            # Custom React hooks (useContent)
-├── data/             # Static fallback data
-└── utils/            # Utilities (lazyRetry)
+├── services/         # Unified data service (dataService.ts)
+├── hooks/            # Custom React hooks (useData, useEnterSave)
+├── types/            # TypeScript interfaces (index.ts)
+└── utils/            # Utilities (lazyRetry, animation, iconResolver)
 
-public/
-├── data/             # Runtime JSON data
-│   ├── content.json
-│   ├── locations.json
-│   └── news.json
-└── assets/           # Images, location photos
+server/               # Backend API (index.ts - port 3001)
+tests/                # Test files (data-persistence, content-updates, routes)
+public/data/          # Runtime JSON: data.json (unified)
 ```
 
 ---
@@ -81,22 +90,22 @@ export const ComponentName = ({ prop }: Props) => {
 };
 ```
 
-### Service Pattern
+### Data Service Pattern
 
 ```typescript
-// All services follow this pattern
-export const serviceService = {
-  getAll: async () => { /* fetch + fallback */ },
-  getById: async (id) => { /* fetch single + fallback */ },
-  save: async (item) => { /* PATCH, disabled in local mode */ },
-};
+// Unified data service (src/services/dataService.ts)
+import { dataService } from './services/dataService';
+
+await dataService.load();           // Load data (API → static fallback)
+const data = dataService.getData(); // Get cached data (sync)
+await dataService.save(newData);    // Save to backend API
 ```
 
-### Content Hook Pattern
+### Data Hook Pattern
 
 ```typescript
-const content = useContent();
-// Reactive content loading with event-based updates
+const { data, loading } = useData();
+// Reactive data loading with event-based updates
 ```
 
 ---
@@ -115,10 +124,10 @@ const content = useContent();
 - Legacy redirects: `/butovo` -> `/lounge/butovo`
 
 ### Data Layer
-- JSON files in `public/data/`
-- Fallback data in `src/data/content.ts`
-- Services read from JSON, fallback on error
-- `USE_LOCAL_DATA = true` disables API writes
+- Single unified JSON file: `public/data/data.json`
+- Single data service: `src/services/dataService.ts`
+- Types defined in: `src/types/index.ts`
+- Backend API: `server/index.ts` (port 3001)
 
 ### SEO
 - `react-helmet-async` for meta tags
@@ -137,44 +146,47 @@ const content = useContent();
 
 ### Add a New Location
 
-1. Add entry to `public/data/locations.json`
+1. Add entry to `locations` array in `public/data/data.json`
 2. Add images to `public/assets/locations/`
 3. Page auto-generates at `/lounge/{slug}`
 
 ### Add News Article
 
-1. Add entry to `public/data/news.json`
+1. Add entry to `news` array in `public/data/data.json`
 2. Add image to `public/assets/images/`
 3. Page auto-generates at `/news/{slug}`
 
 ### Edit Homepage Content
 
-1. Modify `public/data/content.json`
+1. Modify sections in `public/data/data.json`
 2. Or use admin panel at `/admin/content`
 
 ---
 
 ## TypeScript Interfaces
 
-Key interfaces are defined in service files:
-
-- `LocationItem` - `src/services/locationsService.ts:34`
-- `NewsItem` - `src/services/newsService.ts:20`
-- Content types - `src/data/content.ts`
+All interfaces defined in `src/types/index.ts`:
+- `SiteContent` - Master type containing all data
+- `Location`, `NewsItem` - Entity types
+- `HeroContent`, `AboutContent`, etc. - Section types
 
 ---
 
 ## Testing
 
-Currently no test files. When adding tests:
-- Place in `__tests__/` or alongside components as `*.test.tsx`
-- Use Vitest (Vite's test runner)
+Test files in `tests/` directory:
+- `data-persistence.test.ts` - Backend API tests
+- `content-updates.test.ts` - Content update tests
+- `routes.test.ts` - Route validation tests
+
+Run: `npm run test:all`
 
 ---
 
 ## API Proxy
 
-Dev server proxies `/api/*` to `http://localhost:3000`. Currently unused as `USE_LOCAL_DATA = true` in all services.
+Dev server proxies `/api/*` to `http://localhost:3001` (backend server).
+Run backend with: `npm run server`
 
 ---
 
@@ -194,5 +206,4 @@ Dev server proxies `/api/*` to `http://localhost:3000`. Currently unused as `USE
 For detailed documentation, see:
 
 - **[PROJECT_INDEX.md](./PROJECT_INDEX.md)** - Complete project structure and module reference
-- **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** - System architecture and component hierarchy
-- **[docs/API.md](./docs/API.md)** - Service layer and data structures
+- **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** - System architecture 

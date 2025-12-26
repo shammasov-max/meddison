@@ -27,7 +27,7 @@ export const AdminDashboard = () => {
     setWebhookStatus('loading');
     setWebhookMessage('');
     try {
-      const response = await fetch('https://backend.youware.com/api/telegram/setup');
+      const response = await fetch('/api/telegram/setup');
       const data = await response.json();
       if (data.telegram_response?.ok) {
         setWebhookStatus('success');

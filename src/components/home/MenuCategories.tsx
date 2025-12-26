@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { useData } from '../../hooks/useData';
+import { isDev, devTransition } from '../../utils/animation';
 
 export const MenuCategories: React.FC = () => {
   const { menuCategories } = useData();
@@ -13,10 +14,10 @@ export const MenuCategories: React.FC = () => {
           {menuCategories?.map((category, index) => (
             <motion.div
               key={category.id}
-              initial={{ opacity: 0 }}
+              initial={isDev ? { opacity: 1 } : { opacity: 0 }}
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
-              transition={{ delay: index * 0.2 }}
+              transition={devTransition({ delay: index * 0.2 })}
               className="group relative h-[400px] md:h-[600px] overflow-hidden border-r border-white/10 last:border-r-0"
             >
               <div className="absolute inset-0">

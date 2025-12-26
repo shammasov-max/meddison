@@ -80,7 +80,11 @@ const injectToHead = (html: string, id: string) => {
   });
 };
 
-export const TrackingScripts: React.FC = () => {
+interface TrackingScriptsProps {
+  children: React.ReactNode;
+}
+
+export const TrackingScripts: React.FC<TrackingScriptsProps> = ({ children }) => {
   const [trackingConfig, setTrackingConfig] = useState<TrackingConfig | null>(null);
 
   useEffect(() => {
@@ -133,5 +137,5 @@ export const TrackingScripts: React.FC = () => {
   }, [trackingConfig]);
 
   // This component doesn't render anything visible
-  return null;
+  return children;
 };

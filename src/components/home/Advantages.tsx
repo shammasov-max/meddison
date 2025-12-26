@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useData } from '../../hooks/useData';
 import { getIcon } from '../../utils/iconResolver';
+import { isDev, devTransition } from '../../utils/animation';
 
 export const Advantages = () => {
   const { advantages } = useData();
@@ -16,26 +17,26 @@ export const Advantages = () => {
             d="M 20 0 V 800"
             stroke="#d4af37"
             strokeWidth="1"
-            initial={{ pathLength: 0 }}
+            initial={isDev ? { pathLength: 1 } : { pathLength: 0 }}
             whileInView={{ pathLength: 1 }}
-            transition={{ duration: 2, ease: "easeInOut" }}
+            transition={devTransition({ duration: 2, ease: "easeInOut" })}
           />
           <motion.path
             d="M 50 100 V 700"
             stroke="#d4af37"
             strokeWidth="0.5"
-            initial={{ pathLength: 0 }}
+            initial={isDev ? { pathLength: 1 } : { pathLength: 0 }}
             whileInView={{ pathLength: 1 }}
-            transition={{ duration: 2.5, delay: 0.5, ease: "easeInOut" }}
+            transition={devTransition({ duration: 2.5, delay: 0.5, ease: "easeInOut" })}
           />
            <motion.path
             d="M 80 200 V 600"
             stroke="#d4af37"
             strokeWidth="0.5"
             strokeDasharray="5 5"
-            initial={{ pathLength: 0 }}
+            initial={isDev ? { pathLength: 1 } : { pathLength: 0 }}
             whileInView={{ pathLength: 1 }}
-            transition={{ duration: 3, delay: 1, ease: "easeInOut" }}
+            transition={devTransition({ duration: 3, delay: 1, ease: "easeInOut" })}
           />
         </svg>
 
@@ -45,36 +46,36 @@ export const Advantages = () => {
             d="M 20 0 V 800"
             stroke="#d4af37"
             strokeWidth="1"
-            initial={{ pathLength: 0 }}
+            initial={isDev ? { pathLength: 1 } : { pathLength: 0 }}
             whileInView={{ pathLength: 1 }}
-            transition={{ duration: 2, ease: "easeInOut" }}
+            transition={devTransition({ duration: 2, ease: "easeInOut" })}
           />
           <motion.path
             d="M 50 100 V 700"
             stroke="#d4af37"
             strokeWidth="0.5"
-            initial={{ pathLength: 0 }}
+            initial={isDev ? { pathLength: 1 } : { pathLength: 0 }}
             whileInView={{ pathLength: 1 }}
-            transition={{ duration: 2.5, delay: 0.5, ease: "easeInOut" }}
+            transition={devTransition({ duration: 2.5, delay: 0.5, ease: "easeInOut" })}
           />
            <motion.path
             d="M 80 200 V 600"
             stroke="#d4af37"
             strokeWidth="0.5"
             strokeDasharray="5 5"
-            initial={{ pathLength: 0 }}
+            initial={isDev ? { pathLength: 1 } : { pathLength: 0 }}
             whileInView={{ pathLength: 1 }}
-            transition={{ duration: 3, delay: 1, ease: "easeInOut" }}
+            transition={devTransition({ duration: 3, delay: 1, ease: "easeInOut" })}
           />
         </svg>
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={isDev ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
+          transition={devTransition({ duration: 0.8 })}
           className="text-center mb-20"
         >
           <h2 className="text-3xl md:text-5xl font-serif font-bold mb-4 text-white">
@@ -91,24 +92,24 @@ export const Advantages = () => {
           {/* Central Axis Lines (The "Diagram" Structure) */}
           <div className="absolute inset-0 pointer-events-none hidden md:block">
             {/* Vertical Center Line */}
-            <motion.div 
-              initial={{ height: 0 }}
+            <motion.div
+              initial={isDev ? { height: "100%" } : { height: 0 }}
               whileInView={{ height: "100%" }}
-              transition={{ duration: 1.5, ease: "easeInOut" }}
-              className="absolute left-1/2 top-0 w-[1px] bg-gradient-to-b from-transparent via-amber-500/30 to-transparent -translate-x-1/2" 
+              transition={devTransition({ duration: 1.5, ease: "easeInOut" })}
+              className="absolute left-1/2 top-0 w-[1px] bg-gradient-to-b from-transparent via-amber-500/30 to-transparent -translate-x-1/2"
             />
             {/* Horizontal Center Line */}
-            <motion.div 
-              initial={{ width: 0 }}
+            <motion.div
+              initial={isDev ? { width: "100%" } : { width: 0 }}
               whileInView={{ width: "100%" }}
-              transition={{ duration: 1.5, ease: "easeInOut" }}
-              className="absolute top-1/2 left-1/2 h-[1px] bg-gradient-to-r from-transparent via-amber-500/30 to-transparent -translate-x-1/2 -translate-y-1/2" 
+              transition={devTransition({ duration: 1.5, ease: "easeInOut" })}
+              className="absolute top-1/2 left-1/2 h-[1px] bg-gradient-to-r from-transparent via-amber-500/30 to-transparent -translate-x-1/2 -translate-y-1/2"
             />
             {/* Central Node */}
             <motion.div
-              initial={{ scale: 0, opacity: 0 }}
+              initial={isDev ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
               whileInView={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.5, duration: 0.5 }}
+              transition={devTransition({ delay: 0.5, duration: 0.5 })}
               className="absolute top-1/2 left-1/2 w-4 h-4 bg-amber-500 rounded-full -translate-x-1/2 -translate-y-1/2 shadow-[0_0_20px_rgba(212,175,55,0.5)]"
             />
           </div>
@@ -117,10 +118,10 @@ export const Advantages = () => {
             {advantages?.items.map((item, idx) => (
               <motion.div
                 key={item.id}
-                initial={{ opacity: 0, x: idx % 2 === 0 ? -30 : 30 }}
+                initial={isDev ? { opacity: 1, x: 0 } : { opacity: 0, x: idx % 2 === 0 ? -30 : 30 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: idx * 0.2, duration: 0.8 }}
+                transition={devTransition({ delay: idx * 0.2, duration: 0.8 })}
                 className="relative group flex flex-col md:flex-row items-start gap-6 md:gap-8"
               >
                 {/* Icon Container */}

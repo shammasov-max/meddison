@@ -1,41 +1,38 @@
 # Project Index: Medisson Lounge
 
-Generated: 2025-12-25
+Generated: 2025-12-26
 
 ## Overview
 
-Premium lounge bar website for **Medisson Lounge** chain in Moscow. React 18 SPA with Vite, featuring:
-- Public-facing landing pages with booking functionality
-- Admin panel for content, locations, news, and SEO management
-- Multi-location support (Butovo, Select Ramenki)
-- Russian language (ru_RU locale)
+Premium lounge bar website for **Medisson Lounge** chain in Moscow. React 18 SPA with Vite 7, TypeScript, and Tailwind CSS.
 
-**Domain**: `medisson-lounge.ru`
+- **Domain**: medisson-lounge.ru
+- **Locale**: Russian (ru_RU)
+- **Locations**: 2 (Butovo active, Select Ramenki coming soon)
 
 ---
 
 ## Project Structure
 
 ```
-hookah/main/
+meddison/
 ├── src/
-│   ├── components/
-│   │   ├── admin/      # Admin panel components
-│   │   ├── home/       # Homepage sections
-│   │   ├── layout/     # Navbar, Footer
-│   │   ├── loyalty/    # Loyalty program components
-│   │   └── ui/         # Reusable UI (Modals, Buttons, etc.)
-│   ├── pages/
-│   │   ├── admin/      # Admin pages (Dashboard, Locations, News, etc.)
-│   │   └── *.tsx       # Public pages (Home, News, Location, etc.)
-│   ├── services/       # API services (content, locations, news)
-│   ├── hooks/          # Custom React hooks
-│   ├── data/           # Static content fallbacks
-│   └── utils/          # Utilities (lazyRetry)
-├── public/
-│   ├── assets/         # Images, location photos
-│   └── data/           # JSON data (content, locations, news)
-└── [config files]      # Vite, Tailwind, TypeScript configs
+│   ├── components/         # UI components by feature
+│   │   ├── admin/          # Admin panel (AdminLayout, TelegramChat)
+│   │   ├── home/           # Homepage sections
+│   │   ├── layout/         # Navbar, Footer
+│   │   ├── loyalty/        # Loyalty program
+│   │   └── ui/             # Reusable UI components
+│   ├── pages/              # Page components
+│   │   └── admin/          # Admin pages
+│   ├── services/           # Data service (unified)
+│   ├── hooks/              # Custom React hooks
+│   ├── types/              # TypeScript interfaces
+│   └── utils/              # Utilities
+├── server/                 # Backend API
+├── public/data/            # Runtime JSON data
+├── tests/                  # Test files
+└── docs/                   # Documentation
 ```
 
 ---
@@ -44,10 +41,11 @@ hookah/main/
 
 | Type | Path | Description |
 |------|------|-------------|
-| App Entry | `src/main.tsx` | React app bootstrap with Router, Helmet, ErrorBoundary |
-| Routes | `src/App.tsx` | All routes definition (public + admin) |
+| App Entry | `src/main.tsx` | React bootstrap with Router, Helmet, ErrorBoundary |
+| Routes | `src/App.tsx` | All route definitions (public + admin) |
 | HTML | `index.html` | Root HTML with SEO meta tags |
-| Vite Config | `vite.config.ts` | Build config with proxy to `/api` |
+| Vite Config | `vite.config.ts` | Build config, API proxy |
+| Backend | `server/index.ts` | Data API server (port 3001) |
 
 ---
 
@@ -55,74 +53,117 @@ hookah/main/
 
 ### Pages
 
+**Public Pages (6)**:
 | File | Route | Description |
 |------|-------|-------------|
-| `Home.tsx` | `/` | Main landing page with all sections |
-| `LocationPage.tsx` | `/lounge/:slug` | Dynamic location detail pages |
-| `NewsPage.tsx` | `/news` | News listing page |
-| `NewsDetailPage.tsx` | `/news/:slug` | Individual news article |
-| `LoyaltyPage.tsx` | `/loyalty` | Loyalty program page |
+| `Home.tsx` | `/` | Main landing page |
+| `LocationPage.tsx` | `/lounge/:slug` | Dynamic location detail |
+| `NewsPage.tsx` | `/news` | News listing |
+| `NewsDetailPage.tsx` | `/news/:slug` | News article detail |
+| `LoyaltyPage.tsx` | `/loyalty` | Loyalty program |
 | `PrivacyPolicy.tsx` | `/privacy` | Privacy policy |
 
-### Admin Pages
-
+**Admin Pages (6)**:
 | File | Route | Description |
 |------|-------|-------------|
-| `AdminDashboard.tsx` | `/admin/dashboard` | Main admin dashboard |
-| `AdminLocations.tsx` | `/admin/locations` | Manage lounge locations |
+| `AdminDashboard.tsx` | `/admin/dashboard` | Overview dashboard |
+| `AdminLocations.tsx` | `/admin/locations` | Manage locations |
 | `AdminNews.tsx` | `/admin/news` | Manage news articles |
 | `AdminContent.tsx` | `/admin/content` | Edit site content |
 | `AdminSEO.tsx` | `/admin/seo` | SEO settings |
-| `AdminBookingSettings.tsx` | `/admin/booking-settings` | Booking configuration |
+| `AdminBookingSettings.tsx` | `/admin/booking-settings` | Booking config |
 
 ### Components
 
-| Module | Purpose |
-|--------|---------|
-| `components/home/*` | Hero, About, Advantages, Atmosphere, Locations, MenuCategories, BookingCTA |
-| `components/layout/*` | Navbar, Footer |
-| `components/ui/*` | BookingModal, GlowButton, Preloader, ErrorBoundary, ImageUpload, TrackingScripts, JsonLdInjector |
-| `components/loyalty/*` | LoyaltyIntro, LoyaltyLevels, LoyaltyCTA |
-| `components/admin/*` | AdminLayout, TelegramChat |
-
-### Services
-
-| Service | Purpose |
-|---------|---------|
-| `contentService.ts` | Fetches/saves content from `/data/content.json` |
-| `locationsService.ts` | Manages location data from `/data/locations.json` |
-| `newsService.ts` | Manages news articles from `/data/news.json` |
-
-### Hooks
-
-| Hook | Purpose |
-|------|---------|
-| `useContent.ts` | Reactive content loading with event-based updates |
+| Module | Components |
+|--------|------------|
+| `home/*` | Hero, About, Advantages, Atmosphere, Locations, MenuCategories, BookingCTA |
+| `layout/*` | Navbar, Footer |
+| `ui/*` | BookingModal, GlowButton, Preloader, ErrorBoundary, ImageUpload, TrackingScripts, JsonLdInjector, BookingSuccess |
+| `loyalty/*` | LoyaltyIntro, LoyaltyLevels, LoyaltyCTA |
+| `admin/*` | AdminLayout, TelegramChat |
 
 ---
 
 ## Data Layer
 
-Content is loaded from static JSON files in `public/data/`:
+### Unified Architecture
 
-| File | Content |
-|------|---------|
-| `content.json` | Hero, About, Advantages, Atmosphere, Menu, Contact, SEO |
-| `locations.json` | Location details (Butovo, Select) with galleries, features |
-| `news.json` | News articles |
+| Component | Path | Description |
+|-----------|------|-------------|
+| Data File | `public/data/data.json` | Single source of all content |
+| Service | `src/services/dataService.ts` | Unified data operations |
+| Types | `src/types/index.ts` | All TypeScript interfaces |
 
-Fallback data exists in `src/data/content.ts`.
+### dataService API
+
+```typescript
+// Async methods
+load(forceRefresh?): Promise<SiteContent>  // Load data (API → static fallback)
+save(data): Promise<boolean>               // Save to backend API
+
+// Sync methods (use after load)
+getData(): SiteContent | null              // Get cached data
+getLocation(slug): Location | undefined    // Get location by slug
+getNewsItem(slug): NewsItem | undefined    // Get news by slug
+```
+
+### Data Structure (SiteContent)
+
+```typescript
+interface SiteContent {
+  hero: HeroContent;
+  about: AboutContent;
+  advantages: AdvantagesContent;
+  atmosphere: AtmosphereContent;
+  menuCategories: MenuCategory[];
+  contact: ContactInfo;
+  seo: SEOConfig;
+  locations: Location[];
+  news: NewsItem[];
+}
+```
 
 ---
 
-## Configuration
+## Hooks
 
-| File | Purpose |
+| Hook | Purpose |
 |------|---------|
-| `vite.config.ts` | Vite build, dev server (port 5173), API proxy |
-| `tailwind.config.js` | Tailwind with custom fonts (Inter, Playfair) and gold accent |
-| `tsconfig.json` | TypeScript configuration |
-| `postcss.config.js` | PostCSS with Tailwind/Autoprefixer |
+| `useData.ts` | Reactive data loading with event-based updates |
+| `useEnterSave.ts` | Ctrl+Enter keyboard shortcut for admin save actions |
+
+---
+
+## Backend API
+
+**File**: `server/index.ts`
+**Port**: 3001
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/data` | None | Read data.json |
+| POST | `/api/data` | Basic Auth | Write data.json (creates backup) |
+
+**Auth**: `admin:medisson2024` (Basic Auth header)
+
+---
+
+## Tests
+
+| File | Description |
+|------|-------------|
+| `tests/data-persistence.test.ts` | Backend API save/load tests |
+| `tests/content-updates.test.ts` | Content update validation |
+| `tests/routes.test.ts` | Route configuration tests |
+
+**Commands**:
+```bash
+npm run test:api      # Data persistence tests
+npm run test:content  # Content update tests
+npm run test:routes   # Route tests
+npm run test:all      # All tests
+```
 
 ---
 
@@ -130,16 +171,16 @@ Fallback data exists in `src/data/content.ts`.
 
 | Package | Version | Purpose |
 |---------|---------|---------|
-| `react` | 18.3.1 | UI framework |
-| `react-router-dom` | 6.30.1 | Routing |
-| `framer-motion` | 11.0.8 | Animations |
-| `react-helmet-async` | 2.0.5 | SEO meta tags |
-| `lucide-react` | 0.533.0 | Icons |
-| `react-quill` | 2.0.0 | Rich text editor (admin) |
-| `date-fns` | 4.1.0 | Date formatting |
-| `vite` | 7.0.0 | Build tool |
-| `tailwindcss` | 3.4.17 | CSS framework |
-| `typescript` | 5.8.3 | Type checking |
+| react | 18.3.1 | UI framework |
+| react-router-dom | 6.30.1 | Client-side routing |
+| framer-motion | 11.0.8 | Animations |
+| lucide-react | 0.533.0 | Icons |
+| react-quill | 2.0.0 | Rich text editor (admin) |
+| react-helmet-async | 2.0.5 | SEO meta tags |
+| date-fns | 4.1.0 | Date formatting |
+| vite | 7.0.0 | Build tool |
+| tailwindcss | 3.4.17 | CSS framework |
+| typescript | 5.8.3 | Type checking |
 
 ---
 
@@ -149,14 +190,17 @@ Fallback data exists in `src/data/content.ts`.
 # Install dependencies
 npm install
 
-# Start dev server (http://127.0.0.1:5173)
+# Start frontend dev server (http://127.0.0.1:5173)
 npm run dev
+
+# Start backend API server (http://localhost:3001)
+npm run server
 
 # Build for production
 npm run build
 
-# Preview production build
-npm run preview
+# Run all tests
+npm run test:all
 ```
 
 ---
@@ -167,28 +211,39 @@ npm run preview
 - `/` - Homepage
 - `/news` - News listing
 - `/news/:slug` - News detail
-- `/lounge/:slug` - Location detail (butovo, select)
+- `/lounge/:slug` - Location detail
 - `/loyalty` - Loyalty program
 - `/privacy` - Privacy policy
 
 ### Redirects
-- `/butovo` -> `/lounge/butovo`
-- `/select` -> `/lounge/select`
+- `/butovo` → `/lounge/butovo`
+- `/select` → `/lounge/select`
 
-### Admin Routes (Protected)
-- `/admin/login` - Admin login
+### Admin Routes
+- `/admin` → `/admin/dashboard` (redirect)
 - `/admin/dashboard` - Dashboard
 - `/admin/locations` - Manage locations
 - `/admin/news` - Manage news
 - `/admin/content` - Edit content
 - `/admin/seo` - SEO settings
-- `/admin/booking-settings` - Booking settings
+- `/admin/booking-settings` - Booking config
 
 ---
 
 ## Design System
 
-- **Colors**: Black background, gold accents (`#d4af37`)
-- **Fonts**: Inter (sans), Playfair Display (serif)
-- **Theme**: Premium, dark luxury aesthetic
-- **Animations**: Framer Motion for page transitions and effects
+- **Colors**: Black background, gold accents (`#d4af37` / amber-500)
+- **Fonts**: Inter (sans-serif), Playfair Display (serif)
+- **Theme**: Premium dark luxury aesthetic
+- **Animations**: Framer Motion for page transitions
+
+---
+
+## Documentation
+
+| File | Description |
+|------|-------------|
+| `CLAUDE.md` | AI assistant context |
+| `PROJECT_INDEX.md` | This file |
+| `docs/ARCHITECTURE.md` | System architecture |
+| `docs/API.md` | Service layer reference |

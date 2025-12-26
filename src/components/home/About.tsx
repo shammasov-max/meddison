@@ -4,6 +4,7 @@ import { useData } from '../../hooks/useData';
 import smoke1 from '../../assets/images/smoke-1.jpg';
 import smoke2 from '../../assets/images/smoke-2.jpg';
 import heroSmoke from '../../assets/images/hero-smoke.png';
+import { isDev, devTransition } from '../../utils/animation';
 
 export const About: React.FC = () => {
   const { about } = useData();
@@ -78,37 +79,37 @@ export const About: React.FC = () => {
               </h2>
               
               <div className="flex flex-col gap-2 relative">
-                <motion.span 
-                  initial={{ opacity: 0, x: -50 }}
+                <motion.span
+                  initial={isDev ? { opacity: 1, x: 0 } : { opacity: 0, x: -50 }}
                   whileInView={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.8 }}
+                  transition={devTransition({ duration: 0.8 })}
                   className="text-5xl md:text-7xl lg:text-8xl font-serif font-thin text-white tracking-tight"
                 >
                   Искусство
                 </motion.span>
-                
-                <motion.span 
-                  initial={{ opacity: 0, x: 50 }}
+
+                <motion.span
+                  initial={isDev ? { opacity: 1, x: 0 } : { opacity: 0, x: 50 }}
                   whileInView={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.8, delay: 0.2 }}
+                  transition={devTransition({ duration: 0.8, delay: 0.2 })}
                   className="text-4xl md:text-6xl lg:text-7xl font-serif italic text-amber-500 self-end lg:mr-12"
                 >
                   осознанного
                 </motion.span>
-                
-                <motion.span 
-                  initial={{ opacity: 0, y: 30 }}
+
+                <motion.span
+                  initial={isDev ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8, delay: 0.4 }}
+                  transition={devTransition({ duration: 0.8, delay: 0.4 })}
                   className="text-5xl md:text-7xl lg:text-8xl font-serif font-thin text-white tracking-tight self-center lg:self-start lg:ml-24"
                 >
                   отдыха
                 </motion.span>
 
-                <motion.div 
-                  initial={{ scaleX: 0 }}
+                <motion.div
+                  initial={isDev ? { scaleX: 1 } : { scaleX: 0 }}
                   whileInView={{ scaleX: 1 }}
-                  transition={{ duration: 1, delay: 0.6 }}
+                  transition={devTransition({ duration: 1, delay: 0.6 })}
                   className="h-px bg-gradient-to-r from-transparent via-amber-500/50 to-transparent mt-8 w-full max-w-md self-center"
                 />
               </div>
@@ -117,10 +118,10 @@ export const About: React.FC = () => {
 
           {/* Right Column: Content Card */}
           <div className="lg:col-span-7">
-            <motion.div 
-              initial={{ opacity: 0, y: 50 }}
+            <motion.div
+              initial={isDev ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
+              transition={devTransition({ duration: 0.8, delay: 0.2 })}
               className="bg-white/5 backdrop-blur-md border border-white/10 p-8 md:p-12 rounded-3xl relative overflow-hidden group hover:border-amber-500/30 transition-colors duration-500"
             >
               {/* Card Glow Effect */}

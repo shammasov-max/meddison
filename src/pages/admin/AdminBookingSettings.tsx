@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { GlowButton } from '../../components/ui/GlowButton';
 import { Save, Clock, Users, Phone, Mail, FileText, Image, Building, MapPin, MessageCircle } from 'lucide-react';
+import { useEnterSave } from '../../hooks/useEnterSave';
 
-const API_URL = 'https://backend.youware.com/api/booking-settings';
-const ALL_SETTINGS_URL = 'https://backend.youware.com/api/booking-settings/all';
+const API_URL = '/api/booking-settings';
+const ALL_SETTINGS_URL = '/api/booking-settings/all';
 
 interface BookingSettings {
   id: number;
@@ -107,7 +108,7 @@ export const AdminBookingSettings = () => {
     }
   };
 
-  const handleSave = async () => {
+  const doSave = useCallback(async () => {
     setIsSaving(true);
     setError(null);
     setSuccessMessage(null);
@@ -148,7 +149,14 @@ export const AdminBookingSettings = () => {
     } finally {
       setIsSaving(false);
     }
+  }, [settings]);
+
+  const handleSave = async () => {
+    await doSave();
   };
+
+  // Enable Ctrl+Enter to save
+  useEnterSave(doSave, !isLoading, isSaving);
 
   const handleChange = (field: keyof BookingSettings, value: string | number) => {
     setSettings(prev => ({ ...prev, [field]: value }));
@@ -494,6 +502,13 @@ export const AdminBookingSettings = () => {
             </div>
           </div>
         </section>
+
+        {/* Hint */}
+        <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+          <p className="text-amber-500/80 text-sm">
+            <strong>Совет:</strong> Нажмите <kbd className="px-1.5 py-0.5 bg-black/30 rounded text-xs">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 bg-black/30 rounded text-xs">Enter</kbd> для быстрого сохранения настроек.
+          </p>
+        </div>
       </div>
     </div>
   );

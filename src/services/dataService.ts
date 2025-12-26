@@ -18,36 +18,62 @@ export const dataService = {
   // ==================== ASYNC METHODS (only 2) ====================
 
   /**
-   * Load site content from data.json.
-   * Returns cached data if already loaded.
+   * Load site content from API (with static file fallback).
+   * Returns cached data if already loaded, unless forceRefresh is true.
    */
-  load: async (): Promise<SiteContent> => {
-    if (data) {
+  load: async (forceRefresh = false): Promise<SiteContent> => {
+    if (data && !forceRefresh) {
       return data;
     }
 
     try {
-      const response = await fetch('/data/data.json');
+      // Try API first (if backend is running)
+      const response = await fetch('/api/data');
       if (!response.ok) {
-        throw new Error(`Failed to load data: ${response.status}`);
+        throw new Error(`API failed: ${response.status}`);
       }
       data = await response.json();
+      console.log('[dataService] Data loaded from API');
       return data!;
-    } catch (error) {
-      console.error('[dataService] Failed to load data:', error);
-      throw error;
+    } catch (apiError) {
+      // Fallback to static file for dev without backend
+      console.warn('[dataService] API unavailable, falling back to static file');
+      try {
+        const response = await fetch('/data/data.json');
+        if (!response.ok) {
+          throw new Error(`Failed to load data: ${response.status}`);
+        }
+        data = await response.json();
+        console.log('[dataService] Data loaded from static file');
+        return data!;
+      } catch (error) {
+        console.error('[dataService] Failed to load data:', error);
+        throw error;
+      }
     }
   },
 
   /**
-   * Save site content (mock - in-memory only).
-   * In production, this would persist to a backend.
+   * Save site content to backend API.
+   * Creates a backup before saving.
    */
   save: async (newData: SiteContent): Promise<boolean> => {
     try {
+      const response = await fetch('/api/data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Basic ' + btoa('admin:medisson2024'),
+        },
+        body: JSON.stringify(newData, null, 2),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Save failed: ${response.status}`);
+      }
+
       data = newData;
-      console.log('[dataService] Data saved to memory');
-      // Dispatch event for reactive updates
+      console.log('[dataService] Data saved to backend');
       window.dispatchEvent(new Event('data-updated'));
       return true;
     } catch (error) {

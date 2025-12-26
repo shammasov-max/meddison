@@ -10,6 +10,7 @@ import { GlowButton } from '../components/ui/GlowButton';
 import { dataService } from '../services/dataService';
 import { getIcon } from '../utils/iconResolver';
 import type { Location } from '../types';
+import { isDev, devTransition } from '../utils/animation';
 
 const TikTokIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -107,9 +108,9 @@ export const LocationPage = () => {
 
           <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              initial={isDev ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
+              transition={devTransition({ duration: 0.8 })}
             >
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif font-bold mb-6 text-white">
                 {location.name}
@@ -226,10 +227,10 @@ export const LocationPage = () => {
               ].map((item, idx) => (
                 <motion.div
                   key={idx}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={isDev ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: item.delay, duration: 0.5 }}
+                  transition={devTransition({ delay: item.delay, duration: 0.5 })}
                   className="group relative p-6 rounded-xl border border-white/5 bg-zinc-900/40 backdrop-blur-md hover:bg-zinc-900/60 hover:border-amber-500/30 transition-all duration-500 flex flex-col items-center justify-center text-center min-h-[160px]"
                 >
                   {/* Hover Glow Effect */}
@@ -278,10 +279,10 @@ export const LocationPage = () => {
               
               {/* Text Content */}
               <motion.div
-                initial={{ opacity: 0, x: -50 }}
+                initial={isDev ? { opacity: 1, x: 0 } : { opacity: 0, x: -50 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.8 }}
+                transition={devTransition({ duration: 0.8 })}
                 className="lg:col-span-6 backdrop-blur-md bg-black/30 p-6 rounded-3xl border border-white/5 shadow-2xl"
               >
                 <h2 className="text-3xl md:text-5xl font-serif font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-600">
@@ -295,12 +296,12 @@ export const LocationPage = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {location.features?.map((feature, idx) => (
-                    <motion.div 
+                    <motion.div
                       key={idx}
-                      initial={{ opacity: 0, y: 20 }}
+                      initial={isDev ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
-                      transition={{ delay: idx * 0.1 }}
+                      transition={devTransition({ delay: idx * 0.1 })}
                       className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:border-amber-500/50 hover:bg-white/10 transition-all duration-500 group cursor-default"
                     >
                       <div className="p-2 bg-amber-500/20 rounded-full text-amber-400 group-hover:scale-110 group-hover:text-amber-300 transition-all duration-500 shadow-[0_0_15px_rgba(245,158,11,0.2)] shrink-0">
@@ -319,10 +320,10 @@ export const LocationPage = () => {
               <div className="lg:col-span-6 relative h-[400px] hidden lg:block">
                 {/* Main Large Image */}
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
+                  initial={isDev ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }}
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true }}
-                  transition={{ duration: 1 }}
+                  transition={devTransition({ duration: 1 })}
                   className="absolute top-0 right-0 w-4/5 h-[320px] rounded-3xl overflow-hidden border border-white/10 shadow-2xl z-10"
                 >
                   <img 
@@ -335,10 +336,10 @@ export const LocationPage = () => {
 
                 {/* Floating Detail Image */}
                 <motion.div
-                  initial={{ opacity: 0, y: 50, x: -50 }}
+                  initial={isDev ? { opacity: 1, y: 0, x: 0 } : { opacity: 0, y: 50, x: -50 }}
                   whileInView={{ opacity: 1, y: 0, x: 0 }}
                   viewport={{ once: true }}
-                  transition={{ duration: 1, delay: 0.3 }}
+                  transition={devTransition({ duration: 1, delay: 0.3 })}
                   className="absolute bottom-0 left-4 w-1/2 h-[240px] rounded-3xl overflow-hidden border-2 border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-20"
                 >
                   <img 
@@ -389,19 +390,20 @@ export const LocationPage = () => {
 
           <div className="container mx-auto px-4 relative z-10">
             <div className="text-center mb-16">
-              <motion.h2 
-                initial={{ opacity: 0, y: 20 }}
+              <motion.h2
+                initial={isDev ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
+                transition={devTransition({})}
                 className="text-4xl md:text-6xl font-serif font-bold mb-4 text-amber-500"
               >
                 Галерея
               </motion.h2>
-              <motion.p 
-                initial={{ opacity: 0, y: 20 }}
+              <motion.p
+                initial={isDev ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: 0.2 }}
+                transition={devTransition({ delay: 0.2 })}
                 className="text-white/60 text-xl"
               >
                 Интерьер и атмосфера

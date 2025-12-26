@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useData } from '../../hooks/useData';
+import { isDev, devTransition } from '../../utils/animation';
 
 export const Locations: React.FC = () => {
   const { locations } = useData();
@@ -30,10 +31,10 @@ export const Locations: React.FC = () => {
                 className={`block h-full ${isComingSoon ? 'cursor-default' : 'cursor-pointer'}`}
               >
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={isDev ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: index * 0.2 }}
+                  transition={devTransition({ delay: index * 0.2 })}
                   className={`group relative h-[500px] overflow-hidden rounded-2xl ${isComingSoon ? '' : 'cursor-pointer'}`}
                 >
                   <div className="absolute inset-0">

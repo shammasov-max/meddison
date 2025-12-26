@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Navbar } from '../components/layout/Navbar';
 import { Hero } from '../components/home/Hero';
@@ -13,9 +12,10 @@ import { BookingModal } from '../components/ui/BookingModal';
 import { Preloader } from '../components/ui/Preloader';
 import { JsonLdInjector } from '../components/ui/JsonLdInjector';
 import { useData } from '../hooks/useData';
+import { showPreloader } from '../utils/animation';
 
 export const Home = () => {
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(showPreloader);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const { seo } = useData();
 

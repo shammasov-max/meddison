@@ -7,6 +7,7 @@ import { Calendar, MapPin, ArrowRight } from 'lucide-react';
 import { BookingModal } from '../components/ui/BookingModal';
 import { JsonLdInjector } from '../components/ui/JsonLdInjector';
 import { useData } from '../hooks/useData';
+import { isDev, devTransition } from '../utils/animation';
 
 export const NewsPage = () => {
   const [filter, setFilter] = useState('Все');
@@ -56,26 +57,26 @@ export const NewsPage = () => {
               'repeating-linear-gradient(120deg, rgba(245,158,11,0.06) 0px, rgba(245,158,11,0.06) 2px, transparent 2px, transparent 6px)',
             y: bgY,
           }}
-          initial={{ opacity: 0 }}
+          initial={isDev ? { opacity: 1 } : { opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 1.2 }}
+          transition={devTransition({ duration: 1.2 })}
         />
         {/* Ambient glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] md:w-[600px] h-[150px] md:h-[200px] bg-amber-500/10 blur-[80px] md:blur-[100px] rounded-full pointer-events-none" />
         
         <div className="relative z-10 container mx-auto px-4 h-full flex flex-col items-center justify-center text-center">
           <motion.h1
-            initial={{ opacity: 0, y: 20 }}
+            initial={isDev ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
+            transition={devTransition({ duration: 0.8 })}
             className="text-3xl sm:text-4xl md:text-6xl font-serif font-bold mb-3 md:mb-4"
           >
             Новости и События
           </motion.h1>
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={isDev ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1 }}
+            transition={devTransition({ duration: 0.8, delay: 0.1 })}
             className="text-white/70 text-sm md:text-lg max-w-2xl mx-auto px-4"
           >
             Будьте в курсе всех мероприятий, новинок меню и специальных предложений Medisson Lounge.
@@ -127,9 +128,9 @@ export const NewsPage = () => {
             {filteredNews.map((item, idx) => (
               <motion.div
                 key={item.id}
-                initial={{ opacity: 0, y: 20 }}
+                initial={isDev ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1 }}
+                transition={devTransition({ delay: idx * 0.1 })}
                 className="group bg-zinc-900 rounded-2xl overflow-hidden border border-white/5 hover:border-amber-500/30 transition-all duration-500 hover:-translate-y-1 md:hover:-translate-y-2"
               >
                 <Link to={`/news/${item.slug}`} className="block h-full flex flex-col">

@@ -1,0 +1,412 @@
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { serve } from '@hono/node-server';
+import { z } from 'zod';
+import { readFile, writeFile, copyFile, mkdir } from 'node:fs/promises';
+import { join, dirname, extname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { existsSync, createWriteStream } from 'node:fs';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const PORT = 3001;
+const DATA_PATH = join(__dirname, '../public/data/data.json');
+const UPLOADS_PATH = join(__dirname, '../public/uploads');
+const SERVER_DATA_PATH = join(__dirname, 'data');
+
+// Ensure directories exist
+await mkdir(UPLOADS_PATH, { recursive: true });
+await mkdir(SERVER_DATA_PATH, { recursive: true });
+
+// Basic auth credentials
+const ADMIN_USER = 'admin';
+const ADMIN_PASS = 'medisson2024';
+
+// ==================== ZOD SCHEMAS ====================
+
+const BookingSchema = z.object({
+  location: z.string().min(1),
+  date: z.string().regex(/^\d{2}\.\d{2}\.\d{4}$/),
+  time: z.string().regex(/^\d{2}:\d{2}$/),
+  guests: z.number().min(1).max(100),
+  name: z.string().min(1),
+  phone: z.string().min(10),
+});
+
+const BookingSettingsSchema = z.object({
+  id: z.number().optional(),
+  location_slug: z.string().nullable(),
+  title: z.string(),
+  description: z.string(),
+  image: z.string().nullable(),
+  working_hours_start: z.string(),
+  working_hours_end: z.string(),
+  time_slot_interval: z.number(),
+  max_guests: z.number(),
+  min_guests: z.number(),
+  booking_rules: z.string().nullable(),
+  contact_phone: z.string().nullable(),
+  contact_email: z.string().nullable(),
+  telegram_chat_id: z.string().nullable(),
+  telegram_bot_token: z.string().nullable(),
+});
+
+const ContentSchema = z.object({
+  key: z.enum(['seo', 'robotsConfig', 'jsonLdSchemas', 'trackingConfig']),
+  value: z.record(z.unknown()),
+});
+
+type Booking = z.infer<typeof BookingSchema> & { id: number; createdAt: string };
+type BookingSettings = z.infer<typeof BookingSettingsSchema>;
+
+// ==================== JSON FILE HELPERS ====================
+
+async function readJsonFile<T>(filename: string, defaultValue: T): Promise<T> {
+  const filepath = join(SERVER_DATA_PATH, filename);
+  try {
+    const data = await readFile(filepath, 'utf8');
+    return JSON.parse(data) as T;
+  } catch {
+    return defaultValue;
+  }
+}
+
+async function writeJsonFile<T>(filename: string, data: T): Promise<void> {
+  const filepath = join(SERVER_DATA_PATH, filename);
+  await writeFile(filepath, JSON.stringify(data, null, 2), 'utf8');
+}
+
+// ==================== AUTH HELPER ====================
+
+function checkAuth(authHeader: string | undefined): boolean {
+  if (!authHeader?.startsWith('Basic ')) return false;
+  const [user, pass] = Buffer.from(authHeader.slice(6), 'base64')
+    .toString()
+    .split(':');
+  return user === ADMIN_USER && pass === ADMIN_PASS;
+}
+
+// ==================== HONO APP ====================
+
+const app = new Hono();
+
+// CORS middleware
+app.use('*', cors({
+  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization'],
+}));
+
+// ==================== DATA API (existing) ====================
+
+app.get('/api/data', async (c) => {
+  try {
+    const data = await readFile(DATA_PATH, 'utf8');
+    return c.json(JSON.parse(data));
+  } catch (error) {
+    return c.json({ error: 'Failed to read data' }, 500);
+  }
+});
+
+app.post('/api/data', async (c) => {
+  const authHeader = c.req.header('Authorization');
+  if (!checkAuth(authHeader)) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+
+  try {
+    const body = await c.req.text();
+    JSON.parse(body); // Validate JSON
+
+    await copyFile(DATA_PATH, DATA_PATH + '.backup');
+    await writeFile(DATA_PATH, body);
+
+    console.log('[server] Data saved successfully');
+    return c.json({ success: true });
+  } catch (error) {
+    console.error('[server] Save error:', error);
+    return c.json({ error: 'Failed to save data' }, 500);
+  }
+});
+
+// ==================== UPLOAD API ====================
+
+app.post('/api/upload', async (c) => {
+  try {
+    const formData = await c.req.formData();
+    const file = formData.get('file') as File | null;
+    const folder = formData.get('folder') as string | null;
+
+    if (!file) {
+      return c.json({ error: 'No file provided' }, 400);
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      return c.json({ error: 'Invalid file type. Allowed: jpeg, png, webp, gif' }, 400);
+    }
+
+    // Validate file size (10MB)
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      return c.json({ error: 'File too large. Max: 10MB' }, 400);
+    }
+
+    // Generate unique filename
+    const ext = extname(file.name) || '.jpg';
+    const timestamp = Date.now();
+    const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const filename = `${timestamp}-${safeName}`;
+
+    // Determine upload path
+    const uploadDir = folder ? join(UPLOADS_PATH, folder) : UPLOADS_PATH;
+    await mkdir(uploadDir, { recursive: true });
+    const filepath = join(uploadDir, filename);
+
+    // Write file
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await writeFile(filepath, buffer);
+
+    // Generate public URL
+    const publicPath = folder ? `/uploads/${folder}/${filename}` : `/uploads/${filename}`;
+
+    console.log(`[server] File uploaded: ${publicPath}`);
+
+    return c.json({
+      success: true,
+      url: publicPath,
+      key: publicPath,
+      publicUrl: publicPath,
+      file_path: publicPath,
+    });
+  } catch (error) {
+    console.error('[server] Upload error:', error);
+    return c.json({ error: 'Upload failed' }, 500);
+  }
+});
+
+// Legacy upload-url endpoint (for backwards compatibility during migration)
+app.post('/api/upload-url', async (c) => {
+  // For direct upload, just return placeholder - actual upload happens via /api/upload
+  const body = await c.req.json<{ filename: string; contentType: string; folder?: string }>();
+
+  const timestamp = Date.now();
+  const safeName = body.filename.replace(/[^a-zA-Z0-9.-]/g, '_');
+  const filename = `${timestamp}-${safeName}`;
+  const folder = body.folder || '';
+  const publicPath = folder ? `/uploads/${folder}/${filename}` : `/uploads/${filename}`;
+
+  // Return a local upload URL that points to our upload endpoint
+  return c.json({
+    url: '/api/upload',
+    key: publicPath,
+    publicUrl: publicPath,
+    file_path: publicPath,
+    requiredHeaders: {},
+  });
+});
+
+// Legacy download-url endpoint
+app.post('/api/download-url', async (c) => {
+  const body = await c.req.json<{ key: string }>();
+  return c.json({ url: body.key });
+});
+
+// ==================== BOOKINGS API ====================
+
+app.post('/api/bookings', async (c) => {
+  try {
+    const body = await c.req.json();
+    const parsed = BookingSchema.parse(body);
+
+    // Load existing bookings
+    const bookings = await readJsonFile<Booking[]>('bookings.json', []);
+
+    // Create new booking
+    const newBooking: Booking = {
+      ...parsed,
+      id: bookings.length > 0 ? Math.max(...bookings.map(b => b.id)) + 1 : 1,
+      createdAt: new Date().toISOString(),
+    };
+
+    bookings.push(newBooking);
+    await writeJsonFile('bookings.json', bookings);
+
+    console.log(`[server] New booking: ${newBooking.name} for ${newBooking.date} at ${newBooking.time}`);
+
+    return c.json({ success: true, id: newBooking.id });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return c.json({ error: 'Validation failed', details: error.errors }, 400);
+    }
+    console.error('[server] Booking error:', error);
+    return c.json({ error: 'Failed to create booking' }, 500);
+  }
+});
+
+app.get('/api/bookings', async (c) => {
+  const bookings = await readJsonFile<Booking[]>('bookings.json', []);
+  return c.json(bookings);
+});
+
+// ==================== BOOKING SETTINGS API ====================
+
+const defaultBookingSettings: BookingSettings[] = [
+  {
+    id: 1,
+    location_slug: 'all',
+    title: 'Medisson Lounge',
+    description: 'Создаем атмосферу, в которую хочется возвращаться.',
+    image: null,
+    working_hours_start: '11:00',
+    working_hours_end: '05:00',
+    time_slot_interval: 30,
+    max_guests: 20,
+    min_guests: 1,
+    booking_rules: null,
+    contact_phone: null,
+    contact_email: null,
+    telegram_chat_id: null,
+    telegram_bot_token: null,
+  }
+];
+
+app.get('/api/booking-settings', async (c) => {
+  const settings = await readJsonFile<BookingSettings[]>('booking_settings.json', defaultBookingSettings);
+  // Return first settings (for backwards compatibility with BookingModal)
+  return c.json(settings[0] || defaultBookingSettings[0]);
+});
+
+app.get('/api/booking-settings/all', async (c) => {
+  const settings = await readJsonFile<BookingSettings[]>('booking_settings.json', defaultBookingSettings);
+  return c.json(settings);
+});
+
+app.put('/api/booking-settings', async (c) => {
+  try {
+    const body = await c.req.json();
+    const parsed = BookingSettingsSchema.parse(body);
+
+    const settings = await readJsonFile<BookingSettings[]>('booking_settings.json', defaultBookingSettings);
+
+    // Create new settings
+    const newSettings: BookingSettings = {
+      ...parsed,
+      id: settings.length > 0 ? Math.max(...settings.map(s => s.id || 0)) + 1 : 1,
+    };
+
+    settings.push(newSettings);
+    await writeJsonFile('booking_settings.json', settings);
+
+    return c.json(newSettings);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return c.json({ error: 'Validation failed', details: error.errors }, 400);
+    }
+    return c.json({ error: 'Failed to create settings' }, 500);
+  }
+});
+
+app.put('/api/booking-settings/:id', async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'));
+    const body = await c.req.json();
+    const parsed = BookingSettingsSchema.parse(body);
+
+    const settings = await readJsonFile<BookingSettings[]>('booking_settings.json', defaultBookingSettings);
+
+    const index = settings.findIndex(s => s.id === id);
+    if (index >= 0) {
+      settings[index] = { ...parsed, id };
+      await writeJsonFile('booking_settings.json', settings);
+      return c.json(settings[index]);
+    } else {
+      // Create new with specified id
+      const newSettings: BookingSettings = { ...parsed, id };
+      settings.push(newSettings);
+      await writeJsonFile('booking_settings.json', settings);
+      return c.json(newSettings);
+    }
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return c.json({ error: 'Validation failed', details: error.errors }, 400);
+    }
+    return c.json({ error: 'Failed to update settings' }, 500);
+  }
+});
+
+// ==================== CONTENT API ====================
+
+app.post('/api/content', async (c) => {
+  try {
+    const body = await c.req.json();
+    const parsed = ContentSchema.parse(body);
+
+    const content = await readJsonFile<Record<string, unknown>>('content.json', {});
+    content[parsed.key] = parsed.value;
+    await writeJsonFile('content.json', content);
+
+    console.log(`[server] Content saved: ${parsed.key}`);
+    return c.json({ success: true });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return c.json({ error: 'Validation failed', details: error.errors }, 400);
+    }
+    return c.json({ error: 'Failed to save content' }, 500);
+  }
+});
+
+app.get('/api/content/:key', async (c) => {
+  const key = c.req.param('key');
+  const content = await readJsonFile<Record<string, unknown>>('content.json', {});
+  return c.json(content[key] || null);
+});
+
+// ==================== TELEGRAM SETUP API (MOCKED) ====================
+
+app.post('/api/telegram/setup', async (c) => {
+  console.log('[server] Telegram webhook setup requested (mocked)');
+  return c.json({
+    telegram_response: {
+      ok: true,
+      description: 'Webhook setup mocked successfully (local development)',
+    },
+  });
+});
+
+// ==================== 404 HANDLER ====================
+
+app.notFound((c) => {
+  return c.json({ error: 'Not found' }, 404);
+});
+
+// ==================== START SERVER ====================
+
+console.log(`[server] Starting HonoJS server on port ${PORT}...`);
+
+serve({
+  fetch: app.fetch,
+  port: PORT,
+}, (info) => {
+  console.log(`[server] HonoJS API running on http://localhost:${info.port}`);
+  console.log(`[server] Data file: ${DATA_PATH}`);
+  console.log(`[server] Uploads: ${UPLOADS_PATH}`);
+  console.log(`[server] Server data: ${SERVER_DATA_PATH}`);
+  console.log('[server] Endpoints:');
+  console.log('  GET  /api/data');
+  console.log('  POST /api/data');
+  console.log('  POST /api/upload');
+  console.log('  POST /api/upload-url (legacy)');
+  console.log('  POST /api/download-url (legacy)');
+  console.log('  POST /api/bookings');
+  console.log('  GET  /api/bookings');
+  console.log('  GET  /api/booking-settings');
+  console.log('  GET  /api/booking-settings/all');
+  console.log('  PUT  /api/booking-settings');
+  console.log('  PUT  /api/booking-settings/:id');
+  console.log('  POST /api/content');
+  console.log('  GET  /api/content/:key');
+  console.log('  POST /api/telegram/setup (mocked)');
+});

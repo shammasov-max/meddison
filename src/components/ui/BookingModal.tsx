@@ -7,8 +7,8 @@ import { useData } from '../../hooks/useData';
 import logo from '../../assets/images/logo.svg';
 import { BookingSuccess } from './BookingSuccess';
 
-// Use absolute backend URL per Youware platform requirement.
-const API_URL = `https://backend.youware.com/api/bookings`;
+// Use local API - Vite proxies /api/* to localhost:3001
+const API_URL = '/api/bookings';
 
 const formatPhoneNumber = (value: string) => {
   // 1. Get all digits
@@ -57,7 +57,8 @@ interface BookingSettings {
   min_guests: number;
 }
 
-const SETTINGS_API_URL = 'https://backend.youware.com/api/booking-settings';
+// Use local API - Vite proxies /api/* to localhost:3001
+const SETTINGS_API_URL = '/api/booking-settings';
 
 export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, defaultLocation }) => {
   const { locations, hero } = useData();
@@ -66,7 +67,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, def
   // Booking settings from backend
   const [bookingSettings, setBookingSettings] = useState<BookingSettings | null>(null);
   
-  // Fetch booking settings
+  // Fetch booking settings from local API
   useEffect(() => {
     const fetchSettings = async () => {
       try {
@@ -76,7 +77,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, def
           setBookingSettings(data);
         }
       } catch (err) {
-        console.error('Failed to fetch booking settings:', err);
+        // Silently use defaults if backend unavailable
+        console.warn('Booking settings API unavailable, using defaults');
       }
     };
     if (isOpen) {

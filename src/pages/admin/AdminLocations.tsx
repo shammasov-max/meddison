@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit, Trash2, Save, X, Image as ImageIcon, Upload, Link as LinkIcon, Minus, Clock, ArrowUp, ArrowDown } from 'lucide-react';
 import { dataService } from '../../services/dataService';
 import { GlowButton } from '../../components/ui/GlowButton';
+import { useEnterSave } from '../../hooks/useEnterSave';
 import type { Location, LocationFeature, LocationSocialLinks } from '../../types';
 
 export const AdminLocations = () => {
@@ -48,61 +49,85 @@ export const AdminLocations = () => {
     }
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const [isSaving, setIsSaving] = useState(false);
+
+  const doSave = useCallback(async () => {
     if (!currentItem.name) return;
 
-    if (!currentItem.slug) {
-      currentItem.slug = currentItem.name.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
+    const item = { ...currentItem };
+    if (!item.slug) {
+      item.slug = item.name!.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
     }
 
+    setIsSaving(true);
     const data = await dataService.load();
     let updatedLocations: Location[];
 
-    if (currentItem.id) {
+    if (item.id) {
       // Update existing
       updatedLocations = data.locations.map(loc =>
-        loc.id === currentItem.id ? { ...loc, ...currentItem } as Location : loc
+        loc.id === item.id ? { ...loc, ...item } as Location : loc
       );
     } else {
       // Add new
       const newId = Math.max(...data.locations.map(l => l.id), 0) + 1;
-      updatedLocations = [...data.locations, { ...currentItem, id: newId } as Location];
+      updatedLocations = [...data.locations, { ...item, id: newId } as Location];
     }
 
     await dataService.save({ ...data, locations: updatedLocations });
+    setIsSaving(false);
     setIsEditing(false);
     loadLocations();
+  }, [currentItem]);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await doSave();
+    window.alert('Данные успешно сохранены!');
   };
+
+  // Enable Ctrl+Enter to save when editing
+  useEnterSave(doSave, isEditing && !!currentItem.name, isSaving);
 
   const uploadFile = async (file: File): Promise<{ key: string, previewUrl: string } | null> => {
     try {
-      const res = await fetch('https://backend.youware.com/api/upload-url', {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'locations');
+
+      const res = await fetch('/api/upload', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          filename: file.name,
-          contentType: file.type
-        })
+        body: formData,
       });
 
-      if (!res.ok) throw new Error('Failed to get upload URL');
-      const { url, requiredHeaders, key } = await res.json();
+      if (!res.ok) throw new Error('Failed to upload file');
+      const { publicUrl } = await res.json();
 
-      const uploadRes = await fetch(url, {
-        method: 'PUT',
-        headers: requiredHeaders,
-        body: file
-      });
-
-      if (!uploadRes.ok) throw new Error('Failed to upload file');
-
-      return { key, previewUrl: URL.createObjectURL(file) };
+      return { key: publicUrl, previewUrl: URL.createObjectURL(file) };
     } catch (error) {
       console.error('Upload failed:', error);
       alert('Ошибка загрузки изображения');
       return null;
     }
+  };
+
+  // Auto-save helper for image operations
+  const saveImageChanges = async (updatedItem: Partial<Location>) => {
+    if (!updatedItem.id || !updatedItem.name) return;
+
+    setIsSaving(true);
+    try {
+      const data = await dataService.load();
+      const updatedLocations = data.locations.map(loc =>
+        loc.id === updatedItem.id ? { ...loc, ...updatedItem } as Location : loc
+      );
+      await dataService.save({ ...data, locations: updatedLocations });
+      // Update local state
+      setLocations(updatedLocations);
+    } catch (error) {
+      console.error('Auto-save failed:', error);
+    }
+    setIsSaving(false);
   };
 
   const handleMainImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -111,11 +136,14 @@ export const AdminLocations = () => {
     setIsUploading(true);
     const result = await uploadFile(file);
     if (result) {
-      setCurrentItem(prev => ({ 
-        ...prev, 
+      const updatedItem = {
+        ...currentItem,
         image: result.key,
-        imageUrl: result.previewUrl 
-      }));
+        imageUrl: result.previewUrl
+      };
+      setCurrentItem(updatedItem);
+      // Auto-save after upload
+      await saveImageChanges(updatedItem);
     }
     setIsUploading(false);
   };
@@ -124,7 +152,7 @@ export const AdminLocations = () => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     setIsUploading(true);
-    
+
     const newKeys: string[] = [];
     const newPreviews: string[] = [];
 
@@ -136,20 +164,26 @@ export const AdminLocations = () => {
       }
     }
 
-    setCurrentItem(prev => ({
-      ...prev,
-      gallery: [...(prev.gallery || []), ...newKeys],
-      galleryUrls: [...(prev.galleryUrls || prev.gallery || []), ...newPreviews]
-    }));
+    const updatedItem = {
+      ...currentItem,
+      gallery: [...(currentItem.gallery || []), ...newKeys],
+      galleryUrls: [...(currentItem.galleryUrls || currentItem.gallery || []), ...newPreviews]
+    };
+    setCurrentItem(updatedItem);
+    // Auto-save after upload
+    await saveImageChanges(updatedItem);
     setIsUploading(false);
   };
 
-  const removeGalleryImage = (index: number) => {
-    setCurrentItem(prev => ({
-      ...prev,
-      gallery: prev.gallery?.filter((_, i) => i !== index),
-      galleryUrls: prev.galleryUrls?.filter((_, i) => i !== index)
-    }));
+  const removeGalleryImage = async (index: number) => {
+    const updatedItem = {
+      ...currentItem,
+      gallery: currentItem.gallery?.filter((_, i) => i !== index),
+      galleryUrls: currentItem.galleryUrls?.filter((_, i) => i !== index)
+    };
+    setCurrentItem(updatedItem);
+    // Auto-save after removal
+    await saveImageChanges(updatedItem);
   };
 
   const addFeature = () => {
@@ -390,7 +424,7 @@ export const AdminLocations = () => {
                   className="w-full bg-black border border-white/10 rounded-lg px-4 py-2 text-white focus:border-amber-500 outline-none mb-2"
                   placeholder="URL или путь к файлу"
                 />
-                <label className="inline-flex items-center gap-2 cursor-pointer bg-white/5 hover:bg-white/10 px-4 py-2 rounded-lg transition-colors text-sm">
+                <label className="inline-flex items-center gap-2 cursor-pointer select-none bg-white/5 hover:bg-white/10 px-4 py-2 rounded-lg transition-colors text-sm">
                   <Upload size={16} />
                   Загрузить файл
                   <input 
@@ -409,7 +443,7 @@ export const AdminLocations = () => {
           <div>
             <div className="flex items-center justify-between mb-4">
               <label className="block text-sm text-white/50">Галерея</label>
-              <label className="inline-flex items-center gap-2 cursor-pointer text-amber-500 hover:text-amber-400 text-sm">
+              <label className="inline-flex items-center gap-2 cursor-pointer select-none text-amber-500 hover:text-amber-400 text-sm">
                 <Plus size={16} />
                 Добавить фото
                 <input 
@@ -493,18 +527,23 @@ export const AdminLocations = () => {
             </div>
           </div>
 
-          <div className="flex justify-end gap-4 pt-4">
-            <button
-              type="button"
-              onClick={() => setIsEditing(false)}
-              className="px-6 py-2 rounded-full border border-white/10 hover:bg-white/5 transition-colors"
-            >
-              Отмена
-            </button>
-            <GlowButton>
-              <Save size={18} className="mr-2" />
-              Сохранить
-            </GlowButton>
+          <div className="flex items-center justify-between gap-4 pt-4">
+            <p className="text-xs text-white/40">
+              <kbd className="px-1.5 py-0.5 bg-black/30 rounded text-xs">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 bg-black/30 rounded text-xs">Enter</kbd> для быстрого сохранения
+            </p>
+            <div className="flex gap-4">
+              <button
+                type="button"
+                onClick={() => setIsEditing(false)}
+                className="px-6 py-2 rounded-full border border-white/10 hover:bg-white/5 transition-colors"
+              >
+                Отмена
+              </button>
+              <GlowButton disabled={isSaving}>
+                <Save size={18} className="mr-2" />
+                {isSaving ? 'Сохранение...' : 'Сохранить'}
+              </GlowButton>
+            </div>
           </div>
         </form>
       </div>
@@ -528,7 +567,11 @@ export const AdminLocations = () => {
           {locations
             .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
             .map(item => (
-            <div key={item.id} className="bg-zinc-900 border border-white/5 rounded-xl overflow-hidden group hover:border-amber-500/30 transition-colors relative">
+            <div
+              key={item.id}
+              onClick={() => handleEdit(item)}
+              className="bg-zinc-900 border border-white/5 rounded-xl overflow-hidden group hover:border-amber-500/30 transition-colors relative cursor-pointer"
+            >
               {item.comingSoon && (
                 <div className="absolute top-4 left-4 z-10 bg-amber-500 text-black px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1">
                   <Clock size={12} />
@@ -538,14 +581,14 @@ export const AdminLocations = () => {
               <div className="h-48 overflow-hidden relative">
                 <img src={item.imageUrl || item.image} alt={item.name} className={`w-full h-full object-cover ${item.comingSoon ? 'grayscale-[0.3]' : ''}`} />
                 <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button 
-                    onClick={() => handleEdit(item)}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleEdit(item); }}
                     className="p-2 bg-black/50 backdrop-blur-md rounded-lg text-white hover:bg-amber-500 hover:text-black transition-colors"
                   >
                     <Edit size={18} />
                   </button>
-                  <button 
-                    onClick={() => handleDelete(item.id)}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
                     className="p-2 bg-black/50 backdrop-blur-md rounded-lg text-red-400 hover:bg-red-500 hover:text-white transition-colors"
                   >
                     <Trash2 size={18} />

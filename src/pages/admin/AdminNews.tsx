@@ -4,6 +4,7 @@ import 'react-quill/dist/quill.snow.css';
 import { Plus, Edit, Trash2, Save, X, Image as ImageIcon, Upload, Code, Eye } from 'lucide-react';
 import { dataService } from '../../services/dataService';
 import { GlowButton } from '../../components/ui/GlowButton';
+import { useEnterSave } from '../../hooks/useEnterSave';
 import type { NewsItem } from '../../types';
 
 
@@ -22,28 +23,20 @@ export const AdminNews = () => {
   const [isUploadingContent, setIsUploadingContent] = useState(false);
   const quillRef = useRef<ReactQuill>(null);
 
-  // Upload image to R2 and return URL
+  // Upload image and return URL
   const uploadImageToR2 = async (file: File): Promise<string | null> => {
     try {
-      const res = await fetch('https://backend.youware.com/api/upload-url', {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'news-content');
+
+      const res = await fetch('/api/upload', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          filename: `news-content/${Date.now()}-${file.name}`,
-          contentType: file.type
-        })
+        body: formData,
       });
 
-      if (!res.ok) throw new Error('Failed to get upload URL');
-      const { url, requiredHeaders, publicUrl } = await res.json();
-
-      const uploadRes = await fetch(url, {
-        method: 'PUT',
-        headers: requiredHeaders,
-        body: file
-      });
-
-      if (!uploadRes.ok) throw new Error('Failed to upload file');
+      if (!res.ok) throw new Error('Failed to upload file');
+      const { publicUrl } = await res.json();
       return publicUrl;
     } catch (error) {
       console.error('Upload failed:', error);
@@ -140,31 +133,63 @@ export const AdminNews = () => {
     }
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const [isSaving, setIsSaving] = useState(false);
+
+  const doSave = useCallback(async () => {
     if (!currentItem.title) return;
 
-    if (!currentItem.slug) {
-      currentItem.slug = currentItem.title.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
+    const item = { ...currentItem };
+    if (!item.slug) {
+      item.slug = item.title!.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
     }
 
+    setIsSaving(true);
     const data = await dataService.load();
     let updatedNews: NewsItem[];
 
-    if (currentItem.id) {
+    if (item.id) {
       // Update existing
-      updatedNews = data.news.map(item =>
-        item.id === currentItem.id ? { ...item, ...currentItem } as NewsItem : item
+      updatedNews = data.news.map(n =>
+        n.id === item.id ? { ...n, ...item } as NewsItem : n
       );
     } else {
       // Add new
       const newId = Math.max(...data.news.map(n => n.id), 0) + 1;
-      updatedNews = [...data.news, { ...currentItem, id: newId } as NewsItem];
+      updatedNews = [...data.news, { ...item, id: newId } as NewsItem];
     }
 
     await dataService.save({ ...data, news: updatedNews });
+    setIsSaving(false);
     setIsEditing(false);
     loadNews();
+  }, [currentItem]);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await doSave();
+    window.alert('Данные успешно сохранены!');
+  };
+
+  // Enable Ctrl+Enter to save when editing
+  useEnterSave(doSave, isEditing && !!currentItem.title, isSaving);
+
+  // Auto-save helper for image operations
+  const saveImageChanges = async (updatedItem: Partial<ExtendedNewsItem>) => {
+    if (!updatedItem.id || !updatedItem.title) return;
+
+    setIsSaving(true);
+    try {
+      const data = await dataService.load();
+      const updatedNews = data.news.map(n =>
+        n.id === updatedItem.id ? { ...n, ...updatedItem } as NewsItem : n
+      );
+      await dataService.save({ ...data, news: updatedNews });
+      // Update local state
+      setNews(updatedNews);
+    } catch (error) {
+      console.error('Auto-save failed:', error);
+    }
+    setIsSaving(false);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -173,35 +198,25 @@ export const AdminNews = () => {
 
     setIsUploading(true);
     try {
-      // 1. Get presigned URL
-      const token = localStorage.getItem('admin_token');
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'news');
 
-      const res = await fetch('https://backend.youware.com/api/upload-url', {
+      const res = await fetch('/api/upload', {
         method: 'POST',
-        headers,
-        body: JSON.stringify({ 
-          filename: file.name,
-          contentType: file.type
-        })
+        body: formData,
       });
 
-      if (!res.ok) throw new Error('Failed to get upload URL');
-      const { url, requiredHeaders, key } = await res.json();
+      if (!res.ok) throw new Error('Failed to upload file');
+      const { publicUrl } = await res.json();
 
-      // 2. Upload file
-      const uploadRes = await fetch(url, {
-        method: 'PUT',
-        headers: requiredHeaders,
-        body: file
-      });
+      // Update state with the public URL
+      const updatedItem = { ...currentItem, image: publicUrl };
+      setCurrentItem(updatedItem);
 
-      if (!uploadRes.ok) throw new Error('Failed to upload file');
+      // Auto-save after upload
+      await saveImageChanges(updatedItem);
 
-      // 3. Update state
-      setCurrentItem(prev => ({ ...prev, image: key }));
-      
     } catch (error) {
       console.error('Upload failed:', error);
       alert('Ошибка загрузки изображения');
@@ -375,18 +390,23 @@ export const AdminNews = () => {
             </p>
           </div>
 
-          <div className="flex justify-end gap-4 pt-4">
-            <button
-              type="button"
-              onClick={() => setIsEditing(false)}
-              className="px-6 py-2 rounded-full border border-white/10 hover:bg-white/5 transition-colors"
-            >
-              Отмена
-            </button>
-            <GlowButton>
-              <Save size={18} className="mr-2" />
-              Сохранить
-            </GlowButton>
+          <div className="flex items-center justify-between gap-4 pt-4">
+            <p className="text-xs text-white/40">
+              <kbd className="px-1.5 py-0.5 bg-black/30 rounded text-xs">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 bg-black/30 rounded text-xs">Enter</kbd> для быстрого сохранения
+            </p>
+            <div className="flex gap-4">
+              <button
+                type="button"
+                onClick={() => setIsEditing(false)}
+                className="px-6 py-2 rounded-full border border-white/10 hover:bg-white/5 transition-colors"
+              >
+                Отмена
+              </button>
+              <GlowButton disabled={isSaving}>
+                <Save size={18} className="mr-2" />
+                {isSaving ? 'Сохранение...' : 'Сохранить'}
+              </GlowButton>
+            </div>
           </div>
         </form>
       </div>
@@ -419,7 +439,7 @@ export const AdminNews = () => {
             </thead>
             <tbody className="divide-y divide-white/5">
               {news.map(item => (
-                <tr key={item.id} className="hover:bg-white/5 transition-colors">
+                <tr key={item.id} onClick={() => handleEdit(item)} className="hover:bg-white/5 transition-colors cursor-pointer">
                   <td className="p-4 text-white/30">#{item.id}</td>
                   <td className="p-4 font-medium">{item.title}</td>
                   <td className="p-4 text-white/60">{item.date}</td>
@@ -431,13 +451,13 @@ export const AdminNews = () => {
                   <td className="p-4 text-right">
                     <div className="flex justify-end gap-2">
                       <button 
-                        onClick={() => handleEdit(item)}
+                        onClick={(e) => { e.stopPropagation(); handleEdit(item); }}
                         className="p-2 hover:bg-white/10 rounded-lg text-blue-400 transition-colors"
                       >
                         <Edit size={18} />
                       </button>
-                      <button 
-                        onClick={() => handleDelete(item.id)}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
                         className="p-2 hover:bg-white/10 rounded-lg text-red-400 transition-colors"
                       >
                         <Trash2 size={18} />

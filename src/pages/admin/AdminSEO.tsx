@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { dataService } from '../../services/dataService';
-import { GlowButton } from '../../components/ui/GlowButton'
+import { GlowButton } from '../../components/ui/GlowButton';
+import { useEnterSave } from '../../hooks/useEnterSave'
 import { ImageUpload } from '../../components/ui/ImageUpload';
 import { Save, Search, Globe, MapPin, Newspaper, FileText, Gift, ChevronDown, ChevronUp, Image, Share2, Settings, RefreshCw, Upload, Code, Building2, Phone, Clock, MapPinned, DollarSign, Plus, Trash2, Eye, Calendar, Star, User, BarChart3, Activity } from 'lucide-react';
 
@@ -137,50 +138,79 @@ export const AdminSEO = () => {
     loadData();
   }, []);
 
-  const handleSave = async () => {
+  const doSave = useCallback(async () => {
     setIsSaving(true);
     try {
-      await fetch('https://backend.youware.com/api/content', {
+      await fetch('/api/content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: 'seo', value: seoData })
       });
-      
-      await fetch('https://backend.youware.com/api/content', {
+
+      await fetch('/api/content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: 'robotsConfig', value: robotsConfig })
       });
-      
-      await fetch('https://backend.youware.com/api/content', {
+
+      await fetch('/api/content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: 'jsonLdSchemas', value: jsonLdSchemas })
       });
-      
-      await fetch('https://backend.youware.com/api/content', {
+
+      await fetch('/api/content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: 'trackingConfig', value: trackingConfig })
       });
-      
+
       window.dispatchEvent(new Event('content-updated'));
-      alert('SEO настройки сохранены!');
     } catch (error) {
       console.error('Error saving SEO:', error);
+      throw error;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [seoData, robotsConfig, jsonLdSchemas, trackingConfig]);
+
+  const handleSave = async () => {
+    try {
+      await doSave();
+      alert('SEO настройки сохранены!');
+    } catch {
       alert('Ошибка сохранения');
     }
-    setIsSaving(false);
   };
 
-  const updateSEO = (key: string, field: keyof SEOData, value: string) => {
-    setSeoData(prev => ({
-      ...prev,
+  // Enable Ctrl+Enter to save
+  useEnterSave(doSave, true, isSaving);
+
+  const updateSEO = async (key: string, field: keyof SEOData, value: string) => {
+    const newSeoData = {
+      ...seoData,
       [key]: {
-        ...prev[key],
+        ...seoData[key],
         [field]: value
       }
-    }));
+    };
+    setSeoData(newSeoData);
+
+    // Auto-save when OG Image is changed
+    if (field === 'ogImage' && value) {
+      setIsSaving(true);
+      try {
+        await fetch('/api/content', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: 'seo', value: newSeoData })
+        });
+        window.dispatchEvent(new Event('content-updated'));
+      } catch (error) {
+        console.error('Auto-save failed:', error);
+      }
+      setIsSaving(false);
+    }
   };
 
   const toggleSection = (section: string) => {
@@ -374,7 +404,7 @@ Allow: /
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-serif font-bold">SEO Настройки</h1>
-          <p className="text-white/50 mt-1">OG теги, Sitemap, Robots.txt</p>
+          <p className="text-white/50 mt-1">OG теги, Sitemap, Robots.txt — <kbd className="px-1.5 py-0.5 bg-black/30 rounded text-xs">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 bg-black/30 rounded text-xs">Enter</kbd> для сохранения</p>
         </div>
         <GlowButton onClick={handleSave} disabled={isSaving}>
           <Save size={18} className="mr-2" />

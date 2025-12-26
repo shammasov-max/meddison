@@ -5,6 +5,7 @@ import { ChevronDown } from 'lucide-react';
 import { GlowButton } from '../ui/GlowButton';
 import heroSmoke from '../../assets/images/hero-smoke.png';
 import logo from '../../assets/images/logo.svg';
+import { isDev, devTransition } from '../../utils/animation';
 
 interface HeroProps {
   onOpenBooking?: () => void;
@@ -70,9 +71,9 @@ export const Hero: React.FC<HeroProps> = ({ onOpenBooking }) => {
         >
           {/* Logo Reveal Animation */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.5, filter: 'blur(20px)' }}
+            initial={isDev ? { opacity: 1, scale: 1, filter: 'blur(0px)' } : { opacity: 0, scale: 0.5, filter: 'blur(20px)' }}
             animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-            transition={{ duration: 2.5, ease: "easeOut" }}
+            transition={devTransition({ duration: 2.5, ease: "easeOut" })}
             className="mb-12 relative"
           >
             {/* Ambient Glow behind Logo */}
@@ -92,9 +93,9 @@ export const Hero: React.FC<HeroProps> = ({ onOpenBooking }) => {
 
           {/* Slogan & Description */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={isDev ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 1.5 }}
+            transition={devTransition({ duration: 1, delay: 1.5 })}
             className="space-y-8 max-w-2xl"
           >
             <h2 className="text-amber-500/90 text-sm md:text-lg uppercase tracking-[0.4em] font-light">
@@ -105,11 +106,11 @@ export const Hero: React.FC<HeroProps> = ({ onOpenBooking }) => {
               {hero?.description}
             </p>
             
-            <motion.div 
+            <motion.div
               className="pt-12"
-              initial={{ opacity: 0, y: 20 }}
+              initial={isDev ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 2 }}
+              transition={devTransition({ duration: 0.8, delay: 2 })}
             >
               <GlowButton onClick={onOpenBooking}>
                 Забронировать стол
@@ -121,9 +122,9 @@ export const Hero: React.FC<HeroProps> = ({ onOpenBooking }) => {
 
       {/* Scroll Indicator */}
       <motion.div
-        initial={{ opacity: 0 }}
+        initial={isDev ? { opacity: 1 } : { opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 3, duration: 1 }}
+        transition={devTransition({ delay: 3, duration: 1 })}
         className="absolute bottom-12 left-1/2 -translate-x-1/2 text-white/30 animate-bounce"
       >
         <ChevronDown size={24} />
