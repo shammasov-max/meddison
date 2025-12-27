@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { dataService } from '../../services/dataService';
 import { GlowButton } from '../../components/ui/GlowButton';
-import { useEnterSave } from '../../hooks/useEnterSave'
+import { useEnterSave } from '../../hooks/useEnterSave';
+import { usePasteAutoSave } from '../../hooks/usePasteAutoSave'
 import { ImageUpload } from '../../components/ui/ImageUpload';
 import { Save, Search, Globe, MapPin, Newspaper, FileText, Gift, ChevronDown, ChevronUp, Image, Share2, Settings, RefreshCw, Upload, Code, Building2, Phone, Clock, MapPinned, DollarSign, Plus, Trash2, Eye, Calendar, Star, User, BarChart3, Activity } from 'lucide-react';
 
@@ -185,6 +186,9 @@ export const AdminSEO = () => {
 
   // Enable Ctrl+Enter to save
   useEnterSave(doSave, true, isSaving);
+
+  // Enable auto-save on paste
+  usePasteAutoSave(doSave, true, isSaving);
 
   const updateSEO = async (key: string, field: keyof SEOData, value: string) => {
     const newSeoData = {

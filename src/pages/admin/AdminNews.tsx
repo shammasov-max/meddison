@@ -5,6 +5,7 @@ import { Plus, Edit, Trash2, Save, X, Image as ImageIcon, Upload, Code, Eye } fr
 import { dataService } from '../../services/dataService';
 import { GlowButton } from '../../components/ui/GlowButton';
 import { useEnterSave } from '../../hooks/useEnterSave';
+import { usePasteAutoSave } from '../../hooks/usePasteAutoSave';
 import type { NewsItem } from '../../types';
 
 
@@ -172,6 +173,9 @@ export const AdminNews = () => {
 
   // Enable Ctrl+Enter to save when editing
   useEnterSave(doSave, isEditing && !!currentItem.title, isSaving);
+
+  // Enable auto-save on paste when editing
+  usePasteAutoSave(doSave, isEditing && !!currentItem.title, isSaving);
 
   // Auto-save helper for image operations
   const saveImageChanges = async (updatedItem: Partial<ExtendedNewsItem>) => {

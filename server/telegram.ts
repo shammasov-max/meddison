@@ -1,30 +1,13 @@
 /**
  * Telegram Bot Service for Medisson Lounge
  *
- * Handles:
- * - Sending booking notifications to configured chat/community
- * - Fallback to subscribed admins if no chat_id configured
- * - Dynamic bot reconfiguration without server restart
- * - Robust error handling with retry logic
+ * Sends booking notifications to configured group chat ONLY.
+ * No subscriber functionality - orders go exclusively to staff group.
  */
 
-import { readFile, writeFile } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const DATA_PATH = join(__dirname, 'data');
-const SUBSCRIBERS_FILE = join(DATA_PATH, 'telegram_subscribers.json');
 const TELEGRAM_API = 'https://api.telegram.org/bot';
 
 // ==================== TYPES ====================
-
-export interface TelegramSubscriber {
-  chatId: number;
-  username?: string;
-  firstName?: string;
-  subscribedAt: string;
-}
 
 export interface BookingForTelegram {
   id: number;
@@ -45,18 +28,6 @@ interface TelegramResponse<T = unknown> {
 
 interface TelegramUpdate {
   update_id: number;
-  message?: {
-    message_id: number;
-    from: {
-      id: number;
-      first_name: string;
-      username?: string;
-    };
-    chat: {
-      id: number;
-    };
-    text?: string;
-  };
   callback_query?: {
     id: string;
     from: {
@@ -91,7 +62,7 @@ interface RetryConfig {
 // ==================== STATE ====================
 
 let botToken: string | null = null;
-let communityChatId: string | null = null;
+let groupChatId: string | null = null;
 let pollingActive = false;
 let pollingTimeout: ReturnType<typeof setTimeout> | null = null;
 let lastUpdateId = 0;
@@ -105,21 +76,6 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
   maxDelay: 10000,
 };
 
-// ==================== FILE HELPERS ====================
-
-async function readSubscribers(): Promise<TelegramSubscriber[]> {
-  try {
-    const data = await readFile(SUBSCRIBERS_FILE, 'utf8');
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
-}
-
-async function writeSubscribers(subscribers: TelegramSubscriber[]): Promise<void> {
-  await writeFile(SUBSCRIBERS_FILE, JSON.stringify(subscribers, null, 2), 'utf8');
-}
-
 // ==================== RETRY LOGIC ====================
 
 function sleep(ms: number): Promise<void> {
@@ -128,13 +84,11 @@ function sleep(ms: number): Promise<void> {
 
 function calculateBackoff(attempt: number, config: RetryConfig): number {
   const delay = Math.min(config.baseDelay * Math.pow(2, attempt), config.maxDelay);
-  // Add jitter (±25%)
   const jitter = delay * 0.25 * (Math.random() * 2 - 1);
   return Math.round(delay + jitter);
 }
 
 function isRetryableError(errorCode?: number, description?: string): boolean {
-  // Retry on rate limits (429), server errors (5xx), network issues
   if (errorCode === 429) return true;
   if (errorCode && errorCode >= 500 && errorCode < 600) return true;
   if (description?.includes('timeout') || description?.includes('network')) return true;
@@ -158,7 +112,7 @@ async function telegramRequest<T>(
   for (let attempt = 0; attempt <= retryConfig.maxRetries; attempt++) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
 
       const response = await fetch(`${TELEGRAM_API}${botToken}/${method}`, {
         method: 'POST',
@@ -176,13 +130,11 @@ async function telegramRequest<T>(
 
       lastError = result;
 
-      // Check if error is retryable
       if (!isRetryableError(result.error_code, result.description)) {
         console.error(`[telegram] Non-retryable error (${method}):`, result.description);
         return result;
       }
 
-      // Don't retry on last attempt
       if (attempt < retryConfig.maxRetries) {
         const delay = calculateBackoff(attempt, retryConfig);
         console.warn(`[telegram] Retry ${attempt + 1}/${retryConfig.maxRetries} for ${method} in ${delay}ms`);
@@ -192,7 +144,6 @@ async function telegramRequest<T>(
       const errorMessage = error instanceof Error ? error.message : String(error);
       lastError = { ok: false, description: errorMessage };
 
-      // Retry on network errors
       if (attempt < retryConfig.maxRetries) {
         const delay = calculateBackoff(attempt, retryConfig);
         console.warn(`[telegram] Network error, retry ${attempt + 1}/${retryConfig.maxRetries} in ${delay}ms:`, errorMessage);
@@ -213,13 +164,11 @@ export async function validateToken(token: string): Promise<{ valid: boolean; bo
     return { valid: false, error: 'Token is empty' };
   }
 
-  // Basic format validation: number:alphanumeric
   const tokenPattern = /^\d+:[A-Za-z0-9_-]+$/;
   if (!tokenPattern.test(token.trim())) {
     return { valid: false, error: 'Invalid token format' };
   }
 
-  // Save current token, test with new one
   const previousToken = botToken;
   botToken = token.trim();
 
@@ -236,7 +185,6 @@ export async function validateToken(token: string): Promise<{ valid: boolean; bo
 
     return { valid: false, error: result.description || 'Token validation failed' };
   } finally {
-    // Restore previous token
     botToken = previousToken;
   }
 }
@@ -250,7 +198,21 @@ function escapeHtml(text: string): string {
     .replace(/>/g, '&gt;');
 }
 
+function getMoscowDateTime(): string {
+  const now = new Date();
+  return now.toLocaleString('ru-RU', {
+    timeZone: 'Europe/Moscow',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}
+
 function buildBookingMessage(booking: BookingForTelegram): string {
+  const moscowTime = getMoscowDateTime();
   return `<b>🔔 Новая бронь!</b>
 
 <b>Заведение:</b> ${escapeHtml(booking.location)}
@@ -260,61 +222,8 @@ function buildBookingMessage(booking: BookingForTelegram): string {
 <b>Имя:</b> ${escapeHtml(booking.name)}
 <b>Телефон:</b> ${booking.phone}
 
-<i>ID: #${booking.id}</i>`;
-}
-
-// ==================== SUBSCRIBER MANAGEMENT ====================
-
-export async function addSubscriber(
-  chatId: number,
-  username?: string,
-  firstName?: string
-): Promise<boolean> {
-  try {
-    const subscribers = await readSubscribers();
-
-    if (subscribers.some(s => s.chatId === chatId)) {
-      console.log(`[telegram] Subscriber ${chatId} already exists`);
-      return false;
-    }
-
-    subscribers.push({
-      chatId,
-      username,
-      firstName,
-      subscribedAt: new Date().toISOString(),
-    });
-
-    await writeSubscribers(subscribers);
-    console.log(`[telegram] New subscriber added: ${chatId} (${firstName || username || 'unknown'})`);
-    return true;
-  } catch (error) {
-    console.error('[telegram] Failed to add subscriber:', error);
-    return false;
-  }
-}
-
-export async function removeSubscriber(chatId: number): Promise<boolean> {
-  try {
-    const subscribers = await readSubscribers();
-    const index = subscribers.findIndex(s => s.chatId === chatId);
-
-    if (index === -1) {
-      return false;
-    }
-
-    subscribers.splice(index, 1);
-    await writeSubscribers(subscribers);
-    console.log(`[telegram] Subscriber removed: ${chatId}`);
-    return true;
-  } catch (error) {
-    console.error('[telegram] Failed to remove subscriber:', error);
-    return false;
-  }
-}
-
-export async function getSubscribers(): Promise<TelegramSubscriber[]> {
-  return readSubscribers();
+<i>ID: #${booking.id}</i>
+<i>Получено: ${moscowTime} (МСК)</i>`;
 }
 
 // ==================== SENDING NOTIFICATIONS ====================
@@ -324,8 +233,15 @@ export async function sendBookingNotification(
 ): Promise<Record<string, number>> {
   const messageIds: Record<string, number> = {};
 
+  console.log(`[telegram] 📤 Processing notification for booking #${booking.id}: ${booking.name}, ${booking.date} ${booking.time}`);
+
   if (!botToken) {
-    console.log('[telegram] Cannot send notification: bot not configured');
+    console.error('[telegram] ❌ Cannot send notification: bot not configured');
+    return messageIds;
+  }
+
+  if (!groupChatId) {
+    console.error('[telegram] ❌ Cannot send notification: group chat ID not configured');
     return messageIds;
   }
 
@@ -339,57 +255,57 @@ export async function sendBookingNotification(
     ]],
   };
 
-  // 1. Send to community chat if configured
-  if (communityChatId) {
-    console.log(`[telegram] Sending to community chat: ${communityChatId}`);
+  try {
+    console.log(`[telegram] 📤 Sending booking #${booking.id} to group: ${groupChatId}`);
     const result = await telegramRequest<SentMessage>('sendMessage', {
-      chat_id: communityChatId,
+      chat_id: groupChatId,
       text,
       parse_mode: 'HTML',
       reply_markup: keyboard,
     });
 
     if (result.ok && result.result?.message_id) {
-      messageIds[communityChatId] = result.result.message_id;
-      console.log(`[telegram] Notification sent to community ${communityChatId}, message_id: ${result.result.message_id}`);
+      messageIds[groupChatId] = result.result.message_id;
+      console.log(`[telegram] ✅ Group notification sent to ${groupChatId}, msg_id: ${result.result.message_id}`);
     } else {
-      console.error(`[telegram] Failed to send to community ${communityChatId}: ${result.description}`);
-      // Continue to subscribers as fallback
+      console.error(`[telegram] ❌ Group send failed: ${result.description || 'Unknown error'}`);
     }
-  }
-
-  // 2. Send to individual subscribers (fallback or additional)
-  const subscribers = await readSubscribers();
-
-  if (subscribers.length === 0 && !communityChatId) {
-    console.log('[telegram] No community chat configured and no subscribers');
-    return messageIds;
-  }
-
-  // Only send to subscribers if no community chat is set
-  // (community is the primary destination)
-  if (!communityChatId) {
-    for (const subscriber of subscribers) {
-      const result = await telegramRequest<SentMessage>('sendMessage', {
-        chat_id: subscriber.chatId,
-        text,
-        parse_mode: 'HTML',
-        reply_markup: keyboard,
-      });
-
-      if (result.ok && result.result?.message_id) {
-        messageIds[String(subscriber.chatId)] = result.result.message_id;
-        console.log(`[telegram] Notification sent to subscriber ${subscriber.chatId}`);
-      } else {
-        console.error(`[telegram] Failed to send to subscriber ${subscriber.chatId}: ${result.description}`);
-      }
-    }
+  } catch (error) {
+    console.error(`[telegram] ❌ Exception sending booking #${booking.id}:`, error);
   }
 
   return messageIds;
 }
 
 // ==================== CALLBACK HANDLING ====================
+
+function parseReceivedTimestamp(messageText: string): Date | null {
+  // Parse "Получено: 26.12.2024, 22:00:34 (МСК)" from message
+  const match = messageText.match(/Получено:\s*(\d{2})\.(\d{2})\.(\d{4}),?\s*(\d{2}):(\d{2}):(\d{2})/);
+  if (!match) return null;
+
+  const [, day, month, year, hour, minute, second] = match;
+  // Create date in Moscow timezone (UTC+3)
+  const dateStr = `${year}-${month}-${day}T${hour}:${minute}:${second}+03:00`;
+  return new Date(dateStr);
+}
+
+function formatElapsedTime(startDate: Date, endDate: Date): string {
+  const diffMs = endDate.getTime() - startDate.getTime();
+  if (diffMs < 0) return '0мин';
+
+  const totalMinutes = Math.floor(diffMs / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours === 0) {
+    return `${minutes}мин`;
+  }
+  if (minutes === 0) {
+    return `${hours}ч`;
+  }
+  return `${hours}ч ${minutes}мин`;
+}
 
 async function handleCallbackQuery(query: TelegramUpdate['callback_query']): Promise<void> {
   if (!query?.data || !query.message) return;
@@ -402,7 +318,7 @@ async function handleCallbackQuery(query: TelegramUpdate['callback_query']): Pro
 
     console.log(`[telegram] Callback: booking ${bookingId} handled by ${handledBy}`);
 
-    // Answer callback query (remove loading state from button)
+    // Answer callback query
     await telegramRequest('answerCallbackQuery', {
       callback_query_id: query.id,
       text: '✅ Статус обновлён!',
@@ -417,77 +333,31 @@ async function handleCallbackQuery(query: TelegramUpdate['callback_query']): Pro
       }
     }
 
-    // Update the message to show confirmed status
+    // Calculate timing info
     const originalText = query.message.text || '';
-    const newText = `${originalText}\n\n<b>✅ Статус: Перезвонено</b>\n<i>Обработал: ${escapeHtml(handledBy)}</i>`;
+    const callbackTime = getMoscowDateTime();
+    const receivedTime = parseReceivedTimestamp(originalText);
+
+    let elapsedStr = '';
+    if (receivedTime) {
+      const now = new Date();
+      elapsedStr = formatElapsedTime(receivedTime, now);
+    }
+
+    // Update the message to show confirmed status with timing
+    const statusLines = [
+      `<b>✅ Перезвонили:</b> ${callbackTime}`,
+    ];
+    if (elapsedStr) {
+      statusLines.push(`<b>⏱ Обработали за:</b> ${elapsedStr}`);
+    }
+
+    const newText = `${originalText}\n\n${statusLines.join('\n')}`;
 
     await telegramRequest('editMessageText', {
       chat_id: query.message.chat.id,
       message_id: query.message.message_id,
       text: newText,
-      parse_mode: 'HTML',
-    });
-  }
-}
-
-async function handleMessage(message: TelegramUpdate['message']): Promise<void> {
-  if (!message?.text) return;
-
-  const chatId = message.chat.id;
-  const text = message.text.trim();
-  const firstName = message.from.first_name;
-  const username = message.from.username;
-
-  console.log(`[telegram] 💬 MESSAGE RECEIVED:`);
-  console.log(`[telegram]   From: ${firstName} ${username ? `(@${username})` : ''}`);
-  console.log(`[telegram]   Chat ID: ${chatId}`);
-  console.log(`[telegram]   Text: "${text}"`);
-
-  if (text === '/start') {
-    console.log(`[telegram] 🆕 /start command - attempting to add subscriber...`);
-    const added = await addSubscriber(chatId, username, firstName);
-    console.log(`[telegram] ${added ? '✅ NEW SUBSCRIBER ADDED' : '⚠️ Subscriber already exists'}: chatId=${chatId}`);
-
-    const responseText = added
-      ? `Привет, ${firstName}! 👋\n\nВы подписаны на уведомления о бронированиях Medisson Lounge.\n\nВы будете получать сообщения о новых бронях с кнопкой "Перезвонено" для отметки статуса.`
-      : `${firstName}, вы уже подписаны на уведомления! ✅`;
-
-    const sendResult = await telegramRequest('sendMessage', {
-      chat_id: chatId,
-      text: responseText,
-    });
-    console.log(`[telegram] Response sent: ${sendResult.ok ? 'OK' : 'FAILED - ' + sendResult.description}`);
-  } else if (text === '/stop') {
-    const removed = await removeSubscriber(chatId);
-    const responseText = removed
-      ? '❌ Вы отписались от уведомлений.\n\nИспользуйте /start чтобы подписаться снова.'
-      : 'Вы не были подписаны на уведомления.';
-
-    await telegramRequest('sendMessage', {
-      chat_id: chatId,
-      text: responseText,
-    });
-  } else if (text === '/status') {
-    const subscribers = await readSubscribers();
-    const isSubscribed = subscribers.some(s => s.chatId === chatId);
-    const responseText = isSubscribed
-      ? `✅ Вы подписаны на уведомления.\n📊 Всего подписчиков: ${subscribers.length}\n🏢 Чат сообщества: ${communityChatId || 'не настроен'}`
-      : '❌ Вы не подписаны.\n\nИспользуйте /start для подписки.';
-
-    await telegramRequest('sendMessage', {
-      chat_id: chatId,
-      text: responseText,
-    });
-  } else if (text === '/help') {
-    await telegramRequest('sendMessage', {
-      chat_id: chatId,
-      text: `🤖 <b>Medisson Lounge Bot</b>
-
-Доступные команды:
-/start - Подписаться на уведомления
-/stop - Отписаться от уведомлений
-/status - Проверить статус подписки
-/help - Показать эту справку`,
       parse_mode: 'HTML',
     });
   }
@@ -502,7 +372,7 @@ async function pollUpdates(): Promise<void> {
     const result = await telegramRequest<TelegramUpdate[]>('getUpdates', {
       offset: lastUpdateId + 1,
       timeout: 30,
-      allowed_updates: ['message', 'callback_query'],
+      allowed_updates: ['callback_query'], // Only listen for callback queries (button clicks)
     }, {
       maxRetries: 2,
       baseDelay: 1000,
@@ -510,20 +380,14 @@ async function pollUpdates(): Promise<void> {
     });
 
     if (result.ok && result.result) {
-      if (result.result.length > 0) {
-        console.log(`[telegram] 📨 Received ${result.result.length} update(s)`);
-      }
-
       for (const update of result.result) {
         lastUpdateId = Math.max(lastUpdateId, update.update_id);
 
         try {
           if (update.callback_query) {
-            console.log(`[telegram] 🔘 Callback query received from: ${update.callback_query.from.first_name}`);
             await handleCallbackQuery(update.callback_query);
-          } else if (update.message) {
-            await handleMessage(update.message);
           }
+          // Ignore all other messages - bot only responds to button clicks in group
         } catch (error) {
           console.error('[telegram] Error handling update:', error);
         }
@@ -544,14 +408,14 @@ async function pollUpdates(): Promise<void> {
 export function configure(token: string | null, chatId?: string | null): void {
   botToken = token;
   if (chatId !== undefined) {
-    communityChatId = chatId;
+    groupChatId = chatId;
   }
-  console.log(`[telegram] Bot configured: token=${token ? 'set' : 'none'}, chatId=${communityChatId || 'none'}`);
+  console.log(`[telegram] Bot configured: token=${token ? 'set' : 'none'}, groupChatId=${groupChatId || 'none'}`);
 }
 
 export function setChatId(chatId: string | null): void {
-  communityChatId = chatId;
-  console.log(`[telegram] Chat ID updated: ${chatId || 'none'}`);
+  groupChatId = chatId;
+  console.log(`[telegram] Group chat ID updated: ${chatId || 'none'}`);
 }
 
 export function setBookingHandledCallback(
@@ -566,7 +430,6 @@ export async function startPolling(): Promise<boolean> {
     return false;
   }
 
-  // Validate token before starting
   const validation = await validateToken(botToken);
   if (!validation.valid) {
     console.error(`[telegram] Cannot start polling: ${validation.error}`);
@@ -607,11 +470,10 @@ export function getStatus(): {
     configured: !!botToken,
     polling: pollingActive,
     token: botToken ? `${botToken.slice(0, 10)}...` : null,
-    chatId: communityChatId,
+    chatId: groupChatId,
   };
 }
 
-// Test connection
 export async function testConnection(): Promise<{ ok: boolean; botName?: string; error?: string }> {
   if (!botToken) {
     return { ok: false, error: 'Bot token not configured' };
@@ -632,43 +494,36 @@ export async function reconfigure(
 ): Promise<{ success: boolean; botName?: string; error?: string }> {
   console.log('[telegram] Reconfiguration requested...');
 
-  // Stop current polling if active
   if (pollingActive) {
     stopPolling();
-    // Wait for polling to stop
     await new Promise(resolve => setTimeout(resolve, 100));
   }
 
-  // If no token provided, fully stop the bot
   if (!token || token.trim() === '') {
     botToken = null;
-    communityChatId = chatId;
+    groupChatId = chatId;
     console.log('[telegram] Bot stopped (no token)');
     return { success: true };
   }
 
-  // Validate the new token
   const validation = await validateToken(token.trim());
   if (!validation.valid) {
     console.error(`[telegram] Invalid token: ${validation.error}`);
     return { success: false, error: validation.error };
   }
 
-  // Configure with new settings
   botToken = token.trim();
-  communityChatId = chatId;
+  groupChatId = chatId;
 
-  // Start polling with new configuration
   const started = await startPolling();
   if (!started) {
     return { success: false, error: 'Failed to start polling' };
   }
 
-  console.log(`[telegram] Reconfigured: @${validation.botName}, chatId=${chatId || 'none'}`);
+  console.log(`[telegram] Reconfigured: @${validation.botName}, groupChatId=${chatId || 'none'}`);
   return { success: true, botName: validation.botName };
 }
 
-// Send test message to verify chat_id works
 export async function sendTestMessage(chatId: string): Promise<{ ok: boolean; error?: string }> {
   if (!botToken) {
     return { ok: false, error: 'Bot token not configured' };

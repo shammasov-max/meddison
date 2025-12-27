@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { GlowButton } from '../../components/ui/GlowButton';
 import { Save, Clock, Users, Phone, Mail, FileText, Image, Building, MapPin, MessageCircle, CheckCircle, XCircle, Send, RefreshCw, Loader2 } from 'lucide-react';
 import { useEnterSave } from '../../hooks/useEnterSave';
+import { usePasteAutoSave } from '../../hooks/usePasteAutoSave';
 
 const API_URL = '/api/booking-settings';
 const ALL_SETTINGS_URL = '/api/booking-settings/all';
@@ -14,7 +15,6 @@ interface TelegramStatus {
   polling: boolean;
   token: string | null;
   chatId: string | null;
-  subscribersCount: number;
 }
 
 interface BookingSettings {
@@ -232,6 +232,9 @@ export const AdminBookingSettings = () => {
   // Enable Ctrl+Enter to save
   useEnterSave(doSave, !isLoading, isSaving);
 
+  // Enable auto-save on paste
+  usePasteAutoSave(doSave, !isLoading, isSaving);
+
   const handleChange = (field: keyof BookingSettings, value: string | number) => {
     setSettings(prev => ({ ...prev, [field]: value }));
   };
@@ -416,13 +419,13 @@ export const AdminBookingSettings = () => {
                   {testMessageResult.ok ? '✓ Сообщение отправлено' : testMessageResult.error}
                 </p>
               )}
-              <p className="text-xs text-white/30 mt-1">Если указан — уведомления идут сюда. Если нет — подписчикам бота.</p>
+              <p className="text-xs text-white/30 mt-1">ID группы для уведомлений о бронях. Обязательное поле.</p>
             </div>
           </div>
 
           {/* Status info */}
           {telegramStatus && (
-            <div className="mt-4 p-3 bg-white/5 rounded-lg text-sm grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="mt-4 p-3 bg-white/5 rounded-lg text-sm grid grid-cols-3 gap-3">
               <div>
                 <span className="text-white/40">Статус:</span>
                 <span className={`ml-2 ${telegramStatus.polling ? 'text-green-400' : 'text-white/60'}`}>
@@ -430,11 +433,7 @@ export const AdminBookingSettings = () => {
                 </span>
               </div>
               <div>
-                <span className="text-white/40">Подписчики:</span>
-                <span className="ml-2 text-white/80">{telegramStatus.subscribersCount}</span>
-              </div>
-              <div>
-                <span className="text-white/40">Чат:</span>
+                <span className="text-white/40">Группа:</span>
                 <span className="ml-2 text-white/80">{telegramStatus.chatId || '—'}</span>
               </div>
               <div>

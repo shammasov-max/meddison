@@ -6,7 +6,7 @@ import { youwareVitePlugin } from "@youware/vite-plugin-react";
 export default defineConfig({
   plugins: [youwareVitePlugin(), react()],
   server: {
-    host: "127.0.0.1",
+    host: "0.0.0.0",
     port: 5173,
     proxy: {
       '/api': {

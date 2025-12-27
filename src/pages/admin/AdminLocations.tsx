@@ -3,6 +3,7 @@ import { Plus, Edit, Trash2, Save, X, Image as ImageIcon, Upload, Link as LinkIc
 import { dataService } from '../../services/dataService';
 import { GlowButton } from '../../components/ui/GlowButton';
 import { useEnterSave } from '../../hooks/useEnterSave';
+import { usePasteAutoSave } from '../../hooks/usePasteAutoSave';
 import type { Location, LocationFeature, LocationSocialLinks } from '../../types';
 
 export const AdminLocations = () => {
@@ -88,6 +89,9 @@ export const AdminLocations = () => {
 
   // Enable Ctrl+Enter to save when editing
   useEnterSave(doSave, isEditing && !!currentItem.name, isSaving);
+
+  // Enable auto-save on paste when editing
+  usePasteAutoSave(doSave, isEditing && !!currentItem.name, isSaving);
 
   const uploadFile = async (file: File): Promise<{ key: string, previewUrl: string } | null> => {
     try {

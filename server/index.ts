@@ -101,7 +101,7 @@ const app = new Hono();
 
 // CORS middleware
 app.use('*', cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+  origin: '*',
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
 }));
@@ -436,17 +436,7 @@ app.get('/api/content/:key', async (c) => {
 // Get Telegram status
 app.get('/api/telegram/status', async (c) => {
   const status = telegram.getStatus();
-  const subscribers = await telegram.getSubscribers();
-  return c.json({
-    ...status,
-    subscribersCount: subscribers.length,
-  });
-});
-
-// Get subscribers list
-app.get('/api/telegram/subscribers', async (c) => {
-  const subscribers = await telegram.getSubscribers();
-  return c.json(subscribers);
+  return c.json(status);
 });
 
 // Configure bot token (legacy - use /reconfigure instead)
@@ -584,7 +574,7 @@ async function initTelegram() {
         if (mainSettings.telegram_chat_id) {
           console.log(`[server] Telegram notifications target: ${mainSettings.telegram_chat_id}`);
         } else {
-          console.log('[server] Telegram notifications: subscribers only');
+          console.log('[server] ⚠️ Telegram group chat not configured - notifications will not be sent');
         }
       } else {
         console.log('[server] Telegram bot token invalid:', result.error);
@@ -619,10 +609,9 @@ serve({
   console.log('  GET  /api/booking-settings');
   console.log('  PUT  /api/booking-settings/:id');
   console.log('  GET  /api/telegram/status');
-  console.log('  GET  /api/telegram/subscribers');
   console.log('  POST /api/telegram/configure');
-  console.log('  POST /api/telegram/start');
-  console.log('  POST /api/telegram/stop');
+  console.log('  POST /api/telegram/reconfigure');
+  console.log('  POST /api/telegram/test-message');
 
   // Initialize Telegram after server starts
   await initTelegram();

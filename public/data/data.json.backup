@@ -109,7 +109,7 @@
       "title": "Кухня",
       "subtitle": "Гастрономическое искусство",
       "description": "Полноценное меню с авторской подачей. От изысканных закусок до сытных горячих блюд — мы превращаем каждый ужин в событие.",
-      "image": "/assets/images/menu-kitchen-new-2.png",
+      "image": "/uploads/1766729107491-vacancy_page.png",
       "link": "#locations",
       "className": "object-center scale-125 saturate-150 brightness-90 group-hover:scale-135"
     },
@@ -162,10 +162,10 @@
     {
       "id": 1,
       "slug": "butovo",
-      "name": "Medisson Бутово",
+      "name": "Medisd0000",
       "description": "Неповторимый вкус и атмосфера в одном месте",
       "fullDescription": "Флагманский проект сети Medisson Lounge, расположенный в самом сердце Северного Бутово. Это место, где премиальный сервис встречается с уютной атмосферой. Просторный зал с панорамными окнами, авторская кухня и эксклюзивная кальянная карта создают идеальные условия для отдыха.",
-      "image": "/assets/locations/butovo-main-new.png",
+      "image": "/uploads/locations/1766846275709-photo_2025-11-30_00-03-30.jpg",
       "address": "Москва, ул. Поляны, 8",
       "phone": "+7 (968) 968-00-02",
       "hours": "11:00 - 05:00",
@@ -176,10 +176,7 @@
         "/assets/locations/butovo-gallery-3.jpg",
         "/assets/locations/butovo-gallery-4.jpg",
         "/assets/locations/butovo-gallery-5.jpg",
-        "/assets/locations/butovo-gallery-6.jpg",
-        "/uploads/locations/1766721904212-hero-smoke.png",
-        "/uploads/locations/1766724098372-location-butovo-interior-new.png",
-        "/uploads/locations/1766724113693-location-butovo-cocktail-new.jpg"
+        "/assets/locations/butovo-gallery-6.jpg"
       ],
       "features": [
         {
@@ -217,11 +214,9 @@
         "/assets/locations/butovo-gallery-3.jpg",
         "/assets/locations/butovo-gallery-4.jpg",
         "/assets/locations/butovo-gallery-5.jpg",
-        "/assets/locations/butovo-gallery-6.jpg",
-        "blob:http://127.0.0.1:5178/a3c4a4a1-182f-46e1-b7fb-984137a6f466",
-        "blob:http://127.0.0.1:5173/ac00870f-fad2-45f9-93c5-f4cca20f29c4",
-        "blob:http://127.0.0.1:5173/15c8bbad-9eff-480e-9448-330962c45391"
-      ]
+        "/assets/locations/butovo-gallery-6.jpg"
+      ],
+      "imageUrl": "blob:http://217.26.27.137:5173/ce24f2b4-4f13-4fe4-8d20-f74a8937e6eb"
     },
     {
       "id": 2,
@@ -276,7 +271,7 @@
     {
       "id": 1,
       "slug": "grand-opening-ramenki",
-      "title": "Торжественное открытие Medisson Select Раменки",
+      "title": "1Торжественное открытие Medisson Select Раменки",
       "date": "07.12.2025",
       "category": "Мероприятия",
       "image": "/uploads/news/1766724387415-news-hero-cover-celebration.jpg",

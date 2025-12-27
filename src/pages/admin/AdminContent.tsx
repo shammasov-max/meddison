@@ -3,6 +3,7 @@ import { dataService } from '../../services/dataService';
 import { GlowButton } from '../../components/ui/GlowButton';
 import { Save, ChevronDown, ChevronUp, Plus, Trash2, Upload, ImageIcon } from 'lucide-react';
 import { useEnterSave } from '../../hooks/useEnterSave';
+import { usePasteAutoSave } from '../../hooks/usePasteAutoSave';
 import type { SiteContent } from '../../types';
 
 type TabType = 'hero' | 'about' | 'advantages' | 'atmosphere' | 'menu' | 'contact';
@@ -59,6 +60,9 @@ export const AdminContent = () => {
 
   // Enable Ctrl+Enter to save
   useEnterSave(handleSave, !!data, isSaving);
+
+  // Enable auto-save on paste
+  usePasteAutoSave(handleSave, !!data, isSaving);
 
   const toggleSection = (key: string) => {
     setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
