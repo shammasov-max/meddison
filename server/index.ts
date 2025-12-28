@@ -12,6 +12,10 @@ import { pipeline } from 'node:stream/promises';
 // Telegram service
 import * as telegram from './telegram.js';
 
+// Meta injection middleware
+import { metaInjectionMiddleware } from './meta-injection.js';
+import { serveStatic } from '@hono/node-server/serve-static';
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = 3001;
 const DATA_PATH = join(__dirname, '../public/data/data.json');
@@ -534,6 +538,26 @@ app.post('/api/telegram/setup', async (c) => {
         : 'Bot not configured. Use /api/telegram/configure first.',
     },
   });
+});
+
+// ==================== STATIC FILE SERVING (PRODUCTION) ====================
+
+// Meta injection middleware for HTML requests
+app.use('*', metaInjectionMiddleware);
+
+// Serve static files from dist/ folder (production build)
+app.use('*', serveStatic({ root: './dist' }));
+
+// SPA fallback - serve index.html for client-side routing
+app.get('*', async (c) => {
+  try {
+    const indexPath = join(__dirname, '../dist/index.html');
+    const html = await readFile(indexPath, 'utf8');
+    return c.html(html);
+  } catch (error) {
+    console.error('[server] Failed to serve index.html:', error);
+    return c.notFound();
+  }
 });
 
 // ==================== 404 HANDLER ====================

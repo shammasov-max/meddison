@@ -8,10 +8,12 @@
     "build": "vite build",
     "preview": "vite preview",
     "server": "tsx server/index.ts",
+    "start": "npm run build && npm run server",
     "test:routes": "tsx tests/routes.test.ts",
     "test:api": "tsx tests/data-persistence.test.ts",
     "test:content": "tsx tests/content-updates.test.ts",
-    "test:all": "npm run test:api && npm run test:content && npm run test:routes"
+    "test:meta": "tsx tests/meta-injection.test.ts",
+    "test:all": "npm run test:api && npm run test:content && npm run test:routes && npm run test:meta"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.7",
