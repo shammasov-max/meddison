@@ -1,6 +1,6 @@
 import React from 'react';
 import { Instagram, Send, Youtube } from 'lucide-react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useData } from '../../hooks/useData';
 import logo from '../../assets/images/logo.svg';
 
@@ -22,45 +22,10 @@ const TikTokIcon = ({ size = 24, className = "" }: { size?: number, className?: 
 
 export const Footer: React.FC = () => {
   const { contact } = useData();
-  const location = useLocation();
-  const navigate = useNavigate();
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
-  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    e.preventDefault();
-
-    // Handle internal page navigation (non-anchor links)
-    if (href.startsWith('/') && !href.includes('#')) {
-      navigate(href);
-      window.scrollTo(0, 0);
-      return;
-    }
-
-    // Handle anchor links
-    const targetId = href.replace('/#', '').replace('#', '');
-
-    if (location.pathname !== '/') {
-      navigate('/');
-      // Wait for navigation then scroll
-      setTimeout(() => {
-        const element = document.getElementById(targetId);
-        if (element) element.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-    } else {
-      const element = document.getElementById(targetId);
-      if (element) element.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
-  const navLinks = [
-    { name: 'Главная', href: '/' },
-    { name: 'Новости', href: '/news' },
-    { name: 'Меню', href: '#menu' },
-    { name: 'Локации', href: '#locations' },
-  ];
 
   return (
     <footer className="bg-black text-white py-8 md:py-12 border-t border-white/5 relative overflow-hidden safe-bottom">
@@ -78,20 +43,6 @@ export const Footer: React.FC = () => {
             style={{ filter: 'brightness(0) invert(1)' }} 
           />
         </Link>
-
-        {/* Navigation */}
-        <nav className="flex flex-wrap justify-center gap-x-6 md:gap-x-8 gap-y-3 md:gap-y-4 mb-8 md:mb-10">
-          {navLinks.map((item) => (
-            <a
-              key={item.name}
-              href={item.href}
-              onClick={(e) => handleNavClick(e, item.href)}
-              className="text-xs md:text-sm font-medium text-white/60 hover:text-amber-500 transition-colors uppercase tracking-wider touch-target flex items-center cursor-pointer"
-            >
-              {item.name}
-            </a>
-          ))}
-        </nav>
 
         {/* Social Icons */}
         <div className="flex items-center gap-5 md:gap-6 mb-8 md:mb-10">
@@ -143,9 +94,6 @@ export const Footer: React.FC = () => {
             <span className="border border-white/10 px-2 py-0.5 rounded">18+</span>
           </div>
           <p>© 2025 Medisson Lounge. Все права защищены.</p>
-          <Link to="/admin/login" className="text-white/10 hover:text-white/30 transition-colors mt-3 md:mt-4 touch-target flex items-center">
-            админ
-          </Link>
         </div>
 
       </div>

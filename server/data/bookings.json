@@ -234,5 +234,19 @@
     "telegramMessageIds": {
       "-1002038998295": 401
     }
+  },
+  {
+    "location": "Meddison",
+    "date": "30.12.2025",
+    "time": "01:00",
+    "guests": 2,
+    "name": "sads",
+    "phone": "+7 (342) 342-34-23",
+    "id": 19,
+    "createdAt": "2025-12-30T20:41:44.434Z",
+    "status": "pending",
+    "telegramMessageIds": {
+      "-1002038998295": 404
+    }
   }
 ]
