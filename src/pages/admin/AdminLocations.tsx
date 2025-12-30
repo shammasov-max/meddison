@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit, Trash2, Save, X, Image as ImageIcon, Upload, Link as LinkIcon, Minus, Clock, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Edit, Trash2, Save, X, Image as ImageIcon, Upload, Link as LinkIcon, Minus, Clock, ArrowUp, ArrowDown, ExternalLink } from 'lucide-react';
 import { dataService } from '../../services/dataService';
 import { GlowButton } from '../../components/ui/GlowButton';
 import { useEnterSave } from '../../hooks/useEnterSave';
@@ -391,7 +391,7 @@ export const AdminLocations = () => {
                   className="px-4 py-2 bg-amber-500/10 hover:bg-amber-500 hover:text-black border border-amber-500/30 hover:border-amber-500 rounded-lg transition-colors flex items-center gap-2"
                   title="Предпросмотр"
                 >
-                  <Icons.ExternalLink size={18} />
+                  <ExternalLink size={18} />
                   Предпросмотр
                 </button>
               )}
@@ -422,7 +422,7 @@ export const AdminLocations = () => {
             <label className="block text-sm text-white/50 mb-2">Главное изображение</label>
             <div className="flex gap-4 items-start">
               <div className="w-32 h-20 bg-black border border-white/10 rounded-lg overflow-hidden flex items-center justify-center">
-                {currentItem.image && currentItem.image.startsWith('http') ? (
+                {currentItem.image && (currentItem.image.startsWith('http') || currentItem.image.startsWith('/')) ? (
                   <img src={currentItem.image} alt="Main" className="w-full h-full object-cover" />
                 ) : (
                   <ImageIcon className="text-white/20" />

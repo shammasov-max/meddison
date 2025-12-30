@@ -186,7 +186,7 @@ export const NewsDetailPage = () => {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4, duration: 0.6 }}
-                className="bg-zinc-900/50 border border-white/10 rounded-2xl p-8 sticky top-32 backdrop-blur-sm"
+                className="bg-zinc-900/50 border border-white/10 rounded-2xl p-8 backdrop-blur-sm"
               >
                 <h3 className="text-2xl font-serif font-bold mb-4">Забронировать стол</h3>
                 <p className="text-white/60 mb-6">

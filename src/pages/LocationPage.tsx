@@ -75,6 +75,47 @@ export const LocationPage = () => {
     ? location.coordinates
     : `https://yandex.ru/maps/?rtext=~${encodeURIComponent(location.address)}&rtt=auto`;
 
+  // Format menu link: local paths (/...) stay as-is, external URLs get https:// if needed
+  const menuLinkUrl = location.menuLink
+    ? location.menuLink.startsWith('/') || location.menuLink.startsWith('http')
+      ? location.menuLink
+      : `https://${location.menuLink}`
+    : null;
+
+  // Format social links for location
+  const formatInstagramUrl = (value: string | undefined) => {
+    if (!value) return null;
+    if (value.startsWith('http')) return value;
+    const username = value.startsWith('@') ? value.slice(1) : value;
+    return `https://instagram.com/${username}`;
+  };
+
+  const formatPhoneUrl = (value: string | undefined) => {
+    if (!value) return null;
+    // Format as tel: link, keep + for international format
+    const phone = value.replace(/[^\d+]/g, '');
+    return `tel:${phone}`;
+  };
+
+  const formatWhatsAppUrl = (value: string | undefined) => {
+    if (!value) return null;
+    if (value.startsWith('http')) return value;
+    // Remove all non-digits for wa.me link
+    const phone = value.replace(/[^\d]/g, '');
+    return `https://wa.me/${phone}`;
+  };
+
+  const formatTelegramUrl = (value: string | undefined) => {
+    if (!value) return null;
+    if (value.startsWith('http')) return value;
+    const username = value.startsWith('@') ? value.slice(1) : value;
+    return `https://t.me/${username}`;
+  };
+
+  const instagramUrl = formatInstagramUrl(location.socialLinks?.instagram);
+  const whatsappUrl = formatWhatsAppUrl(location.socialLinks?.whatsapp);
+  const telegramUrl = formatTelegramUrl(location.socialLinks?.telegram);
+
   return (
     <div className="bg-black min-h-screen text-white font-sans selection:bg-amber-500 selection:text-black">
       <Navbar onOpenBooking={() => setIsBookingOpen(true)} />
@@ -122,9 +163,9 @@ export const LocationPage = () => {
                     Забронировать стол
                   </GlowButton>
                   
-                  {location.menuLink && (
+                  {menuLinkUrl && (
                     <a
-                      href={location.menuLink}
+                      href={menuLinkUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white/5 backdrop-blur-md text-white/90 px-10 py-5 rounded-full font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all duration-300 border border-white/10 hover:border-white/30"
@@ -147,23 +188,18 @@ export const LocationPage = () => {
 
                 {/* Social Icons */}
                 <div className="flex items-center gap-6">
-                  {location.socialLinks?.instagram && (
-                    <a href={location.socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-amber-500 transition-colors p-3 hover:bg-white/10 rounded-full border border-transparent hover:border-white/10">
+                  {instagramUrl && (
+                    <a href={instagramUrl!} target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-amber-500 transition-colors p-3 hover:bg-white/10 rounded-full border border-transparent hover:border-white/10" title="Instagram">
                       <Icons.Instagram size={24} />
                     </a>
                   )}
-                  {location.socialLinks?.tiktok && (
-                    <a href={location.socialLinks.tiktok} target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-amber-500 transition-colors p-3 hover:bg-white/10 rounded-full border border-transparent hover:border-white/10">
-                      <TikTokIcon className="w-6 h-6" />
+                  {telegramUrl && (
+                    <a href={telegramUrl!} target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-amber-500 transition-colors p-3 hover:bg-white/10 rounded-full border border-transparent hover:border-white/10" title="Telegram">
+                      <Icons.Send size={24} />
                     </a>
                   )}
-                  {location.socialLinks?.youtube && (
-                    <a href={location.socialLinks.youtube} target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-amber-500 transition-colors p-3 hover:bg-white/10 rounded-full border border-transparent hover:border-white/10">
-                      <Icons.Youtube size={24} />
-                    </a>
-                  )}
-                  {location.socialLinks?.whatsapp && (
-                    <a href={location.socialLinks.whatsapp} target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-amber-500 transition-colors p-3 hover:bg-white/10 rounded-full border border-transparent hover:border-white/10">
+                  {whatsappUrl && (
+                    <a href={whatsappUrl!} target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-amber-500 transition-colors p-3 hover:bg-white/10 rounded-full border border-transparent hover:border-white/10" title="WhatsApp">
                       <WhatsAppIcon className="w-6 h-6" />
                     </a>
                   )}
@@ -222,11 +258,15 @@ export const LocationPage = () => {
                   delay: 0.2 
                 }
               ].map((item, idx) => {
-                const Component = idx === 0 ? motion.a : motion.div;
+                // Address (idx=0) and Phone (idx=2) are clickable links
+                const isLink = idx === 0 || idx === 2;
+                const Component = isLink ? motion.a : motion.div;
                 const linkProps = idx === 0 ? {
                   href: mapLink,
                   target: "_blank",
                   rel: "noopener noreferrer"
+                } : idx === 2 ? {
+                  href: formatPhoneUrl(location.phone),
                 } : {};
 
                 return (
@@ -237,7 +277,7 @@ export const LocationPage = () => {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={devTransition({ delay: item.delay, duration: 0.5 })}
-                    className={`group relative p-6 rounded-xl border border-white/5 bg-zinc-900/40 backdrop-blur-md hover:bg-zinc-900/60 hover:border-amber-500/30 transition-all duration-500 flex flex-col items-center justify-center text-center min-h-[160px] ${idx === 0 ? 'cursor-pointer' : ''}`}
+                    className={`group relative p-6 rounded-xl border border-white/5 bg-zinc-900/40 backdrop-blur-md hover:bg-zinc-900/60 hover:border-amber-500/30 transition-all duration-500 flex flex-col items-center justify-center text-center min-h-[160px] ${isLink ? 'cursor-pointer' : ''}`}
                   >
                   {/* Hover Glow Effect */}
                   <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-xl" />

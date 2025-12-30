@@ -1,6 +1,6 @@
 import React from 'react';
 import { Instagram, Send, Youtube } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useData } from '../../hooks/useData';
 import logo from '../../assets/images/logo.svg';
 
@@ -22,15 +22,44 @@ const TikTokIcon = ({ size = 24, className = "" }: { size?: number, className?: 
 
 export const Footer: React.FC = () => {
   const { contact } = useData();
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    e.preventDefault();
+
+    // Handle internal page navigation (non-anchor links)
+    if (href.startsWith('/') && !href.includes('#')) {
+      navigate(href);
+      window.scrollTo(0, 0);
+      return;
+    }
+
+    // Handle anchor links
+    const targetId = href.replace('/#', '').replace('#', '');
+
+    if (location.pathname !== '/') {
+      navigate('/');
+      // Wait for navigation then scroll
+      setTimeout(() => {
+        const element = document.getElementById(targetId);
+        if (element) element.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } else {
+      const element = document.getElementById(targetId);
+      if (element) element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   const navLinks = [
-    { name: 'Главная', path: '/' },
-    { name: 'Новости', path: '/news' },
-    { name: 'Меню', path: '/#menu' },
-    { name: 'Локации', path: '/#locations' },
+    { name: 'Главная', href: '/' },
+    { name: 'Новости', href: '/news' },
+    { name: 'Меню', href: '#menu' },
+    { name: 'Локации', href: '#locations' },
   ];
 
   return (
@@ -53,13 +82,14 @@ export const Footer: React.FC = () => {
         {/* Navigation */}
         <nav className="flex flex-wrap justify-center gap-x-6 md:gap-x-8 gap-y-3 md:gap-y-4 mb-8 md:mb-10">
           {navLinks.map((item) => (
-            <Link 
+            <a
               key={item.name}
-              to={item.path} 
-              className="text-xs md:text-sm font-medium text-white/60 hover:text-amber-500 transition-colors uppercase tracking-wider touch-target flex items-center"
+              href={item.href}
+              onClick={(e) => handleNavClick(e, item.href)}
+              className="text-xs md:text-sm font-medium text-white/60 hover:text-amber-500 transition-colors uppercase tracking-wider touch-target flex items-center cursor-pointer"
             >
               {item.name}
-            </Link>
+            </a>
           ))}
         </nav>
 
