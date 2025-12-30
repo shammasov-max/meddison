@@ -12,6 +12,10 @@ export const AdminLocations = () => {
   const [currentItem, setCurrentItem] = useState<Partial<Location>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
+  const [previewUrls, setPreviewUrls] = useState<{
+    mainImage?: string;
+    gallery: string[];
+  }>({ gallery: [] });
 
   useEffect(() => {
     loadLocations();
@@ -93,7 +97,7 @@ export const AdminLocations = () => {
   // Enable auto-save on paste when editing
   usePasteAutoSave(doSave, isEditing && !!currentItem.name, isSaving);
 
-  const uploadFile = async (file: File): Promise<{ key: string, previewUrl: string } | null> => {
+  const uploadFile = async (file: File): Promise<string | null> => {
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -107,7 +111,7 @@ export const AdminLocations = () => {
       if (!res.ok) throw new Error('Failed to upload file');
       const { publicUrl } = await res.json();
 
-      return { key: publicUrl, previewUrl: URL.createObjectURL(file) };
+      return publicUrl;
     } catch (error) {
       console.error('Upload failed:', error);
       alert('Ошибка загрузки изображения');
@@ -142,8 +146,7 @@ export const AdminLocations = () => {
     if (result) {
       const updatedItem = {
         ...currentItem,
-        image: result.key,
-        imageUrl: result.previewUrl
+        image: result
       };
       setCurrentItem(updatedItem);
       // Auto-save after upload
@@ -158,20 +161,17 @@ export const AdminLocations = () => {
     setIsUploading(true);
 
     const newKeys: string[] = [];
-    const newPreviews: string[] = [];
 
     for (let i = 0; i < files.length; i++) {
       const result = await uploadFile(files[i]);
       if (result) {
-        newKeys.push(result.key);
-        newPreviews.push(result.previewUrl);
+        newKeys.push(result);
       }
     }
 
     const updatedItem = {
       ...currentItem,
-      gallery: [...(currentItem.gallery || []), ...newKeys],
-      galleryUrls: [...(currentItem.galleryUrls || currentItem.gallery || []), ...newPreviews]
+      gallery: [...(currentItem.gallery || []), ...newKeys]
     };
     setCurrentItem(updatedItem);
     // Auto-save after upload
@@ -182,8 +182,7 @@ export const AdminLocations = () => {
   const removeGalleryImage = async (index: number) => {
     const updatedItem = {
       ...currentItem,
-      gallery: currentItem.gallery?.filter((_, i) => i !== index),
-      galleryUrls: currentItem.galleryUrls?.filter((_, i) => i !== index)
+      gallery: currentItem.gallery?.filter((_, i) => i !== index)
     };
     setCurrentItem(updatedItem);
     // Auto-save after removal
@@ -414,8 +413,8 @@ export const AdminLocations = () => {
             <label className="block text-sm text-white/50 mb-2">Главное изображение</label>
             <div className="flex gap-4 items-start">
               <div className="w-32 h-20 bg-black border border-white/10 rounded-lg overflow-hidden flex items-center justify-center">
-                {currentItem.imageUrl || (currentItem.image && currentItem.image.startsWith('http')) ? (
-                  <img src={currentItem.imageUrl || currentItem.image} alt="Main" className="w-full h-full object-cover" />
+                {currentItem.image && currentItem.image.startsWith('http') ? (
+                  <img src={currentItem.image} alt="Main" className="w-full h-full object-cover" />
                 ) : (
                   <ImageIcon className="text-white/20" />
                 )}
@@ -461,7 +460,7 @@ export const AdminLocations = () => {
               </label>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {(currentItem.galleryUrls || currentItem.gallery)?.map((img, idx) => (
+              {currentItem.gallery?.map((img, idx) => (
                 <div key={idx} className="relative group aspect-video rounded-lg overflow-hidden bg-black border border-white/10">
                   <img src={img} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
                   <button
@@ -583,7 +582,7 @@ export const AdminLocations = () => {
                 </div>
               )}
               <div className="h-48 overflow-hidden relative">
-                <img src={item.imageUrl || item.image} alt={item.name} className={`w-full h-full object-cover ${item.comingSoon ? 'grayscale-[0.3]' : ''}`} />
+                <img src={item.image} alt={item.name} className={`w-full h-full object-cover ${item.comingSoon ? 'grayscale-[0.3]' : ''}`} />
                 <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={(e) => { e.stopPropagation(); handleEdit(item); }}

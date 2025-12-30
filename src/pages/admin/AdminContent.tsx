@@ -90,7 +90,7 @@ export const AdminContent = () => {
 
       if (response.ok) {
         const result = await response.json();
-        const imagePath = result.previewUrl || result.key;
+        const imagePath = result.key;
         const updates = updateFn(imagePath);
         const newData = { ...data, ...updates };
         setData(newData);
