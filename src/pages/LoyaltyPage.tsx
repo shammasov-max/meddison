@@ -8,10 +8,14 @@ import { JsonLdInjector } from '../components/ui/JsonLdInjector';
 import { LoyaltyIntro } from '../components/loyalty/LoyaltyIntro';
 import { LoyaltyLevels } from '../components/loyalty/LoyaltyLevels';
 import { LoyaltyCTA } from '../components/loyalty/LoyaltyCTA';
+import { useData } from '../hooks/useData';
+
+const SITE_URL = 'https://medisson-lounge.ru';
 
 export const LoyaltyPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
+  const { seo } = useData();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -20,8 +24,14 @@ export const LoyaltyPage = () => {
   return (
     <>
       <Helmet>
-        <title>Система лояльности | Medisson Lounge</title>
-        <meta name="description" content="Программа лояльности Medisson Lounge. Накапливайте бонусы, повышайте уровень карты и получайте кэшбэк до 15%." />
+        <title>{seo?.loyalty?.title || 'Программа лояльности | Medisson Lounge'}</title>
+        <meta name="description" content={seo?.loyalty?.description || 'Программа лояльности Medisson Lounge. Накапливайте бонусы, повышайте уровень карты и получайте кэшбэк до 15%.'} />
+        <meta property="og:type" content={seo?.loyalty?.ogType || 'website'} />
+        <meta property="og:url" content={`${SITE_URL}/loyalty`} />
+        <meta property="og:title" content={seo?.loyalty?.title || 'Программа лояльности | Medisson Lounge'} />
+        <meta property="og:description" content={seo?.loyalty?.description || 'Программа лояльности Medisson Lounge. Накапливайте бонусы, повышайте уровень карты и получайте кэшбэк до 15%.'} />
+        {seo?.loyalty?.ogImage && <meta property="og:image" content={seo.loyalty.ogImage} />}
+        <link rel="canonical" href={`${SITE_URL}/loyalty`} />
       </Helmet>
 
       <JsonLdInjector pageKey="loyalty" />

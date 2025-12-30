@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Calendar, MapPin, ArrowLeft, Share2 } from 'lucide-react';
@@ -10,20 +11,23 @@ import { JsonLdInjector } from '../components/ui/JsonLdInjector';
 import { useData } from '../hooks/useData';
 import type { NewsItem } from '../types';
 
+const SITE_URL = 'https://medisson-lounge.ru';
+
 export const NewsDetailPage = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [showCopiedToast, setShowCopiedToast] = useState(false);
-  const { news: allNews, loading: isLoading } = useData();
+  const { news: allNews, seo, loading: isLoading } = useData();
 
   const newsItem = allNews.find((i) => i.slug === slug);
 
+  // Get SEO data from admin settings (key: news_${slug})
+  const seoKey = `news_${slug}`;
+  const articleSeo = seo?.[seoKey];
+
   useEffect(() => {
-    if (newsItem) {
-      document.title = newsItem.metaTitle || `${newsItem.title} | Medisson Lounge`;
-      window.scrollTo(0, 0);
-    }
+    window.scrollTo(0, 0);
   }, [newsItem]);
 
   const handleShare = async () => {
@@ -73,9 +77,25 @@ export const NewsDetailPage = () => {
     );
   }
 
+  // SEO values with fallbacks to article-level meta or defaults
+  const title = articleSeo?.title || newsItem?.metaTitle || `${newsItem?.title} | Medisson Lounge`;
+  const description = articleSeo?.description || newsItem?.metaDescription || newsItem?.description || '';
+  const ogImage = articleSeo?.ogImage || newsItem?.image || '';
+
   return (
-    <div className="bg-black min-h-screen text-white font-sans selection:bg-amber-500 selection:text-black relative">
-      <JsonLdInjector 
+    <>
+      <Helmet>
+        <title>{title}</title>
+        <meta name="description" content={description} />
+        <meta property="og:type" content={articleSeo?.ogType || 'article'} />
+        <meta property="og:url" content={`${SITE_URL}/news/${slug}`} />
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={description} />
+        {ogImage && <meta property="og:image" content={ogImage} />}
+        <link rel="canonical" href={`${SITE_URL}/news/${slug}`} />
+      </Helmet>
+      <div className="bg-black min-h-screen text-white font-sans selection:bg-amber-500 selection:text-black relative">
+        <JsonLdInjector 
         pageKey={`news_${newsItem.slug}`}
         newsArticleData={{
           slug: newsItem.slug,
@@ -235,11 +255,12 @@ export const NewsDetailPage = () => {
         </div>
       </article>
 
-      <Footer />
-      <BookingModal 
-        isOpen={isBookingOpen} 
-        onClose={() => setIsBookingOpen(false)} 
-      />
-    </div>
+        <Footer />
+        <BookingModal
+          isOpen={isBookingOpen}
+          onClose={() => setIsBookingOpen(false)}
+        />
+      </div>
+    </>
   );
 };

@@ -1,20 +1,36 @@
 import React, { useEffect, useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { Navbar } from '../components/layout/Navbar';
 import { Footer } from '../components/layout/Footer';
 import { BookingModal } from '../components/ui/BookingModal';
 import { JsonLdInjector } from '../components/ui/JsonLdInjector';
 import { motion } from 'framer-motion';
+import { useData } from '../hooks/useData';
+
+const SITE_URL = 'https://medisson-lounge.ru';
 
 export const PrivacyPolicy = () => {
   const [isBookingOpen, setIsBookingOpen] = useState(false);
+  const { seo } = useData();
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
   return (
-    <div className="bg-black min-h-screen text-white font-sans selection:bg-amber-500 selection:text-black">
-      <JsonLdInjector pageKey="privacy" />
+    <>
+      <Helmet>
+        <title>{seo?.privacy?.title || 'Политика конфиденциальности | Medisson Lounge'}</title>
+        <meta name="description" content={seo?.privacy?.description || 'Политика конфиденциальности.'} />
+        <meta property="og:type" content={seo?.privacy?.ogType || 'article'} />
+        <meta property="og:url" content={`${SITE_URL}/privacy`} />
+        <meta property="og:title" content={seo?.privacy?.title || 'Политика конфиденциальности | Medisson Lounge'} />
+        <meta property="og:description" content={seo?.privacy?.description || 'Политика конфиденциальности.'} />
+        {seo?.privacy?.ogImage && <meta property="og:image" content={seo.privacy.ogImage} />}
+        <link rel="canonical" href={`${SITE_URL}/privacy`} />
+      </Helmet>
+      <div className="bg-black min-h-screen text-white font-sans selection:bg-amber-500 selection:text-black">
+        <JsonLdInjector pageKey="privacy" />
       <Navbar onOpenBooking={() => setIsBookingOpen(true)} />
       
       <main className="pt-32 pb-20">
@@ -162,8 +178,9 @@ export const PrivacyPolicy = () => {
         </div>
       </main>
 
-      <Footer />
-      <BookingModal isOpen={isBookingOpen} onClose={() => setIsBookingOpen(false)} />
-    </div>
+        <Footer />
+        <BookingModal isOpen={isBookingOpen} onClose={() => setIsBookingOpen(false)} />
+      </div>
+    </>
   );
 };

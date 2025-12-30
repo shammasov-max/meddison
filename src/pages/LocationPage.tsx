@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as Icons from 'lucide-react';
 import { Navbar } from '../components/layout/Navbar';
@@ -11,6 +12,7 @@ import { dataService } from '../services/dataService';
 import { getIcon } from '../utils/iconResolver';
 import type { Location } from '../types';
 import { isDev, devTransition } from '../utils/animation';
+import { useData } from '../hooks/useData';
 
 const TikTokIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -24,6 +26,8 @@ const WhatsAppIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+const SITE_URL = 'https://medisson-lounge.ru';
+
 export const LocationPage = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -31,6 +35,11 @@ export const LocationPage = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [location, setLocation] = useState<Location | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Get SEO data from admin settings
+  const { data: siteData } = useData();
+  const seoKey = `location_${slug}`;
+  const seo = siteData?.seo?.[seoKey];
 
   useEffect(() => {
     const loadLocation = async () => {
@@ -117,8 +126,19 @@ export const LocationPage = () => {
   const telegramUrl = formatTelegramUrl(location.socialLinks?.telegram);
 
   return (
-    <div className="bg-black min-h-screen text-white font-sans selection:bg-amber-500 selection:text-black">
-      <Navbar onOpenBooking={() => setIsBookingOpen(true)} />
+    <>
+      <Helmet>
+        <title>{seo?.title || `${location.name} | Medisson Lounge`}</title>
+        <meta name="description" content={seo?.description || location.description} />
+        <meta property="og:type" content={seo?.ogType || 'place'} />
+        <meta property="og:url" content={`${SITE_URL}/locations/${slug}`} />
+        <meta property="og:title" content={seo?.title || `${location.name} | Medisson Lounge`} />
+        <meta property="og:description" content={seo?.description || location.description} />
+        <meta property="og:image" content={seo?.ogImage || location.image} />
+        <link rel="canonical" href={`${SITE_URL}/locations/${slug}`} />
+      </Helmet>
+      <div className="bg-black min-h-screen text-white font-sans selection:bg-amber-500 selection:text-black">
+        <Navbar onOpenBooking={() => setIsBookingOpen(true)} />
       
       <main>
         {/* Hero Section */}
@@ -525,12 +545,13 @@ export const LocationPage = () => {
         />
       </main>
 
-      <Footer />
-      <BookingModal 
-        isOpen={isBookingOpen} 
-        onClose={() => setIsBookingOpen(false)} 
-        defaultLocation={location.name}
-      />
-    </div>
+        <Footer />
+        <BookingModal
+          isOpen={isBookingOpen}
+          onClose={() => setIsBookingOpen(false)}
+          defaultLocation={location.name}
+        />
+      </div>
+    </>
   );
 };

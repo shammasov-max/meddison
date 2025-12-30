@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Navbar } from '../components/layout/Navbar';
@@ -9,23 +10,14 @@ import { JsonLdInjector } from '../components/ui/JsonLdInjector';
 import { useData } from '../hooks/useData';
 import { isDev, devTransition } from '../utils/animation';
 
+const SITE_URL = 'https://medisson-lounge.ru';
+
 export const NewsPage = () => {
   const [filter, setFilter] = useState('Все');
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const { news, seo, loading: isLoading } = useData();
   const { scrollYProgress } = useScroll();
   const bgY = useTransform(scrollYProgress, [0, 1], [0, 80]);
-
-  useEffect(() => {
-    // Update SEO
-    if (seo?.news) {
-      document.title = seo.news.title;
-      const metaDesc = document.querySelector('meta[name="description"]');
-      if (metaDesc) {
-        metaDesc.setAttribute('content', seo.news.description);
-      }
-    }
-  }, [seo]);
 
   const categories = ['Все', 'Мероприятия', 'Меню', 'Акции'];
 
@@ -34,8 +26,19 @@ export const NewsPage = () => {
     : news.filter(item => item.category === filter);
 
   return (
-    <div className="bg-black min-h-screen text-white font-sans selection:bg-amber-500 selection:text-black">
-      <JsonLdInjector pageKey="news" />
+    <>
+      <Helmet>
+        <title>{seo?.news?.title || 'Новости и события | Medisson Lounge'}</title>
+        <meta name="description" content={seo?.news?.description || 'Афиша мероприятий, акции и новости сети Medisson Lounge.'} />
+        <meta property="og:type" content={seo?.news?.ogType || 'website'} />
+        <meta property="og:url" content={`${SITE_URL}/news`} />
+        <meta property="og:title" content={seo?.news?.title || 'Новости и события | Medisson Lounge'} />
+        <meta property="og:description" content={seo?.news?.description || 'Афиша мероприятий, акции и новости сети Medisson Lounge.'} />
+        {seo?.news?.ogImage && <meta property="og:image" content={seo.news.ogImage} />}
+        <link rel="canonical" href={`${SITE_URL}/news`} />
+      </Helmet>
+      <div className="bg-black min-h-screen text-white font-sans selection:bg-amber-500 selection:text-black">
+        <JsonLdInjector pageKey="news" />
       <Navbar onOpenBooking={() => setIsBookingOpen(true)} />
       
       {/* Hero Header */}
@@ -175,11 +178,12 @@ export const NewsPage = () => {
         )}
       </main>
 
-      <Footer />
-      <BookingModal 
-        isOpen={isBookingOpen} 
-        onClose={() => setIsBookingOpen(false)} 
-      />
-    </div>
+        <Footer />
+        <BookingModal
+          isOpen={isBookingOpen}
+          onClose={() => setIsBookingOpen(false)}
+        />
+      </div>
+    </>
   );
 };
