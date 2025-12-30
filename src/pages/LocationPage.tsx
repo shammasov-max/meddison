@@ -36,11 +36,6 @@ export const LocationPage = () => {
     const loadLocation = async () => {
       if (!slug) return;
 
-      if (slug === 'select') {
-        navigate('/');
-        return;
-      }
-
       setIsLoading(true);
       await dataService.load();
       const data = dataService.getLocation(slug);

@@ -34,11 +34,11 @@ function App() {
         <Route path="/loyalty" element={<LoyaltyPage />} />
         
         {/* Dynamic Location Routes */}
-        <Route path="/lounge/:slug" element={<LocationPage />} />
-        
+        <Route path="/locations/:slug" element={<LocationPage />} />
+
         {/* Legacy/Direct Routes */}
-        <Route path="/butovo" element={<Navigate to="/lounge/butovo" replace />} />
-        <Route path="/select" element={<Navigate to="/lounge/select" replace />} />
+        <Route path="/butovo" element={<Navigate to="/locations/butovo" replace />} />
+        <Route path="/select" element={<Navigate to="/locations/select" replace />} />
 
         {/* Admin Routes (no auth - internal use only) */}
         <Route path="/admin" element={<AdminLayout />}>

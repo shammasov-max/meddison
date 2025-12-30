@@ -79,7 +79,7 @@ function parseRoute(pathname: string): RouteMatch {
   }
 
   // Location detail
-  const locationMatch = path.match(/^\/lounge\/([^\/]+)$/);
+  const locationMatch = path.match(/^\/locations\/([^\/]+)$/);
   if (locationMatch) {
     return { type: 'location', slug: locationMatch[1] };
   }
@@ -177,7 +177,7 @@ async function getMetadataForRoute(pathname: string, data: SiteData): Promise<Me
         image: location.image
           ? (location.image.startsWith('http') ? location.image : `${BASE_URL}${location.image}`)
           : `${BASE_URL}/assets/images/og-image.jpg`,
-        url: `${BASE_URL}/lounge/${location.slug}`,
+        url: `${BASE_URL}/locations/${location.slug}`,
         type: 'place'
       };
 

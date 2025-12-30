@@ -105,8 +105,8 @@ async function runTests() {
 
   // Location pages
   const locationRoutes = [
-    { path: '/lounge/butovo', name: 'Butovo location' },
-    { path: '/lounge/select', name: 'Select Ramenki location' },
+    { path: '/locations/butovo', name: 'Butovo location' },
+    { path: '/locations/select', name: 'Select Ramenki location' },
   ];
 
   for (const route of locationRoutes) {
@@ -117,29 +117,29 @@ async function runTests() {
   // Legacy redirects
   console.log('\n🔀 Testing Redirects...\n');
 
-  // /butovo should redirect to /lounge/butovo
+  // /butovo should redirect to /locations/butovo
   await page.goto(`${BASE_URL}/butovo`, { waitUntil: 'networkidle' });
   const butovtUrl = page.url();
   const butovtResult: TestResult = {
-    route: '/butovo → /lounge/butovo',
-    status: butovtUrl.includes('/lounge/butovo') ? 'pass' : 'fail',
-    errors: butovtUrl.includes('/lounge/butovo') ? [] : [`Redirected to ${butovtUrl}`],
+    route: '/butovo → /locations/butovo',
+    status: butovtUrl.includes('/locations/butovo') ? 'pass' : 'fail',
+    errors: butovtUrl.includes('/locations/butovo') ? [] : [`Redirected to ${butovtUrl}`],
     loadTime: 0,
   };
   results.push(butovtResult);
-  console.log(`  ${butovtResult.status === 'pass' ? '✅' : '❌'} /butovo → /lounge/butovo`);
+  console.log(`  ${butovtResult.status === 'pass' ? '✅' : '❌'} /butovo → /locations/butovo`);
 
-  // /select should redirect to /lounge/select
+  // /select should redirect to /locations/select
   await page.goto(`${BASE_URL}/select`, { waitUntil: 'networkidle' });
   const selectUrl = page.url();
   const selectResult: TestResult = {
-    route: '/select → /lounge/select',
-    status: selectUrl.includes('/lounge/select') ? 'pass' : 'fail',
-    errors: selectUrl.includes('/lounge/select') ? [] : [`Redirected to ${selectUrl}`],
+    route: '/select → /locations/select',
+    status: selectUrl.includes('/locations/select') ? 'pass' : 'fail',
+    errors: selectUrl.includes('/locations/select') ? [] : [`Redirected to ${selectUrl}`],
     loadTime: 0,
   };
   results.push(selectResult);
-  console.log(`  ${selectResult.status === 'pass' ? '✅' : '❌'} /select → /lounge/select`);
+  console.log(`  ${selectResult.status === 'pass' ? '✅' : '❌'} /select → /locations/select`);
 
   // Static pages
   console.log('\n📜 Testing Static Pages...\n');

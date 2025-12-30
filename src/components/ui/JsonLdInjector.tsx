@@ -121,10 +121,10 @@ export const JsonLdInjector: React.FC<JsonLdInjectorProps> = ({ pageKey, locatio
           const localBusinessSchema: any = {
             '@context': 'https://schema.org',
             '@type': 'Restaurant',
-            '@id': `https://medisson-lounge.ru/lounge/${pageKey.replace('location_', '')}`,
+            '@id': `https://medisson-lounge.ru/locations/${pageKey.replace('location_', '')}`,
             name: locationData.name,
             description: locationData.description || `Лаунж-бар ${locationData.name} в Москве`,
-            url: `https://medisson-lounge.ru/lounge/${pageKey.replace('location_', '')}`,
+            url: `https://medisson-lounge.ru/locations/${pageKey.replace('location_', '')}`,
             telephone: locationData.phone,
             address: {
               '@type': 'PostalAddress',
@@ -163,7 +163,7 @@ export const JsonLdInjector: React.FC<JsonLdInjectorProps> = ({ pageKey, locatio
           localBusinessSchema.hasMenu = {
             '@type': 'Menu',
             name: 'Основное меню',
-            url: `https://medisson-lounge.ru/lounge/${pageKey.replace('location_', '')}#menu`
+            url: `https://medisson-lounge.ru/locations/${pageKey.replace('location_', '')}#menu`
           };
           
           generatedSchemas.push(localBusinessSchema);
@@ -484,9 +484,9 @@ export const JsonLdInjector: React.FC<JsonLdInjectorProps> = ({ pageKey, locatio
           if (pageKey.startsWith('location_')) {
             const slug = pageKey.replace('location_', '');
             const locationName = breadcrumbSettings.locations?.[slug] || locationData?.name || 'Локация';
-            breadcrumbItems.push({ 
-              name: locationName, 
-              url: `${siteUrl}/lounge/${slug}` 
+            breadcrumbItems.push({
+              name: locationName,
+              url: `${siteUrl}/locations/${slug}`
             });
           } else if (pageKey.startsWith('news_')) {
             const newsName = breadcrumbSettings.newsName || 'Новости';

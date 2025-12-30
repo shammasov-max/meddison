@@ -233,7 +233,7 @@ export const AdminSEO = () => {
     ];
 
     const locationPages = locations.map(loc => ({
-      url: `/lounge/${loc.slug}`,
+      url: `/locations/${loc.slug}`,
       priority: '0.9',
       changefreq: 'weekly'
     }));
@@ -481,7 +481,7 @@ Allow: /
                 {locations.map(loc => renderSEOCard(
                   `location_${loc.slug}`,
                   loc.name,
-                  `${SITE_URL}/lounge/${loc.slug}`,
+                  `${SITE_URL}/locations/${loc.slug}`,
                   <MapPin className="text-green-500" size={18} />
                 ))}
               </div>

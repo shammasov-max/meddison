@@ -171,7 +171,7 @@ async function runTests() {
   });
 
   await test('Location page shows updated description', async () => {
-    await page.goto(`${FRONTEND_URL}/lounge/butovo`, { waitUntil: 'networkidle' });
+    await page.goto(`${FRONTEND_URL}/locations/butovo`, { waitUntil: 'networkidle' });
     const pageText = await page.textContent('body');
     assert(pageText?.includes(testLocationDesc) ?? false, `Description "${testLocationDesc}" not found`);
   });

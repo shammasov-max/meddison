@@ -46,7 +46,7 @@
 | Component | Route | Responsibility |
 |-----------|-------|----------------|
 | `Home` | `/` | Main landing page, orchestrates all home sections |
-| `LocationPage` | `/lounge/:slug` | Dynamic location detail with gallery, features |
+| `LocationPage` | `/locations/:slug` | Dynamic location detail with gallery, features |
 | `NewsPage` | `/news` | News listing with filtering |
 | `NewsDetailPage` | `/news/:slug` | Individual news article with SEO |
 | `LoyaltyPage` | `/loyalty` | Loyalty program information |
@@ -191,7 +191,7 @@ interface NewsItem {
 /                     → Home (lazy loaded)
 /news                 → NewsPage (lazy loaded)
 /news/:slug           → NewsDetailPage (lazy loaded)
-/lounge/:slug         → LocationPage (lazy loaded)
+/locations/:slug      → LocationPage (lazy loaded)
 /loyalty              → LoyaltyPage (lazy loaded)
 /privacy              → PrivacyPolicy (lazy loaded)
 ```
@@ -199,8 +199,8 @@ interface NewsItem {
 ### Legacy Redirects
 
 ```
-/butovo  → /lounge/butovo
-/select  → /lounge/select
+/butovo  → /locations/butovo
+/select  → /locations/select
 ```
 
 ### Admin Routes (Protected)

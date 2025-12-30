@@ -22,7 +22,7 @@ export const Locations: React.FC = () => {
             .map((location, index) => {
             const isComingSoon = location.comingSoon === true;
             const Wrapper = isComingSoon ? 'div' : Link;
-            const wrapperProps = isComingSoon ? {} : { to: `/lounge/${location.slug}` };
+            const wrapperProps = isComingSoon ? {} : { to: `/locations/${location.slug}` };
 
             return (
               <Wrapper 
