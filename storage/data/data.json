@@ -3,7 +3,7 @@
     "title": "Premium Lounge Experience",
     "slogan": "Время для себя, место для своих.",
     "description": "Откройте мир изысканных вкусов и безупречного сервиса.",
-    "image": "/uploads/1766846781788-photo_2025-11-30_00-03-30.jpg"
+    "image": "/assets/images/hero-smoke.png"
   },
   "about": {
     "title": "Искусство настоящего отдыха",
@@ -109,7 +109,7 @@
       "title": "Кухня",
       "subtitle": "Высокая кухня для гурманов",
       "description": "Полноценное меню с авторской подачей. От изысканных закусок до сытных горячих блюд — мы превращаем каждый ужин в событие.",
-      "image": "/uploads/1766729107491-vacancy_page.png",
+      "image": "/assets/images/menu-kitchen-new-2.png",
       "link": "#locations",
       "className": "object-center scale-125 saturate-150 brightness-90 group-hover:scale-135"
     },
@@ -146,12 +146,12 @@
   },
   "seo": {
     "home": {
-      "title": "HOME SEO TES",
-      "description": "TEST SEO DESCRIPTION - This is a test description for the home page to verify meta injection."
+      "title": "Medisson Lounge | Премиальный отдых в Москве",
+      "description": "Сеть премиальных лаунж-баров в Москве. Авторская кухня, дымные коктейли и неповторимая атмосфера."
     },
     "news": {
-      "title": "Новости meddison",
-      "description": "TEST SEO"
+      "title": "Новости и события | Medisson Lounge",
+      "description": "Афиша мероприятий, акции и новости сети Medisson Lounge."
     },
     "locations": {
       "title": "Наши локации | Medisson Lounge",
@@ -170,9 +170,9 @@
       "ogType": "website"
     },
     "location_butovo": {
-      "title": "LOCATION SEO TEST 1767126353939",
-      "description": "Неповторимый вкус и атмосфера в одном месте1",
-      "ogImage": "/uploads/locations/1766846491101-photo_2025-11-30_00-03-30.jpg",
+      "title": "Medisson Бутово | Лаунж-бар в Северном Бутово",
+      "description": "Премиальный лаунж-бар Medisson в Северном Бутово. Авторская кухня, эксклюзивные кальяны и уютная атмосфера.",
+      "ogImage": "/assets/locations/butovo-main-new.png",
       "ogType": "place"
     },
     "location_select": {
@@ -182,7 +182,7 @@
       "ogType": "place"
     },
     "news_grand-opening-ramenki": {
-      "title": "NEWS SEO TEST 1767126339984",
+      "title": "Открытие Medisson Select Раменки | Medisson Lounge",
       "description": "Совсем скоро в Москве появится новое место притяжения — флагманский Medisson Select Раменки.",
       "ogImage": "/uploads/news/1766724387415-news-hero-cover-celebration.jpg",
       "ogType": "article"
@@ -216,10 +216,10 @@
     {
       "id": 1,
       "slug": "butovo",
-      "name": "Meddison",
-      "description": "Неповторимый вкус и атмосфера в одном месте1",
-      "fullDescription": "Флагманский проект сети Medisson Lounge, расположенный в самом сердце Северного Бутово. Это место, где премиальный сервис встречается с уютной атмосферой. Просторный зал с панорамными окнами, авторская кухня и эксклюзивная кальянная карта создают идеальные условия для отдыха.1",
-      "image": "/uploads/locations/1766846491101-photo_2025-11-30_00-03-30.jpg",
+      "name": "Medisson Бутово",
+      "description": "Неповторимый вкус и атмосфера в одном месте",
+      "fullDescription": "Флагманский проект сети Medisson Lounge, расположенный в самом сердце Северного Бутово. Это место, где премиальный сервис встречается с уютной атмосферой. Просторный зал с панорамными окнами, авторская кухня и эксклюзивная кальянная карта создают идеальные условия для отдыха.",
+      "image": "/assets/locations/butovo-main-new.png",
       "address": "Москва, ул. Поляны, 8",
       "phone": "+7 (968) 968-00-02",
       "hours": "11:00 - 05:00",
@@ -229,37 +229,37 @@
         "/assets/locations/butovo-gallery-2.jpg",
         "/assets/locations/butovo-gallery-3.jpg",
         "/assets/locations/butovo-gallery-4.jpg",
-        "/uploads/locations/1766846717217-photo_2025-11-30_00-03-30.jpg"
+        "/assets/locations/butovo-gallery-5.jpg"
       ],
       "features": [
         {
-          "icon": "Gamepad21",
-          "title": "PlayStation 51",
-          "desc": "VIP-комнаты с консолями1"
+          "icon": "Gamepad2",
+          "title": "PlayStation 5",
+          "desc": "VIP-комнаты с консолями"
         },
         {
-          "icon": "Wifi1",
-          "title": "Wi-Fi1",
-          "desc": "Высокоскоростной интернет1"
+          "icon": "Wifi",
+          "title": "Wi-Fi",
+          "desc": "Высокоскоростной интернет"
         },
         {
-          "icon": "Car1",
-          "title": "Парковка1",
-          "desc": "Бесплатная городская парковка1"
+          "icon": "Car",
+          "title": "Парковка",
+          "desc": "Бесплатная городская парковка"
         },
         {
-          "icon": "Coffee1",
-          "title": "Авторский чай1",
-          "desc": "Золотая коллекция чая1"
+          "icon": "Coffee",
+          "title": "Авторский чай",
+          "desc": "Золотая коллекция чая"
         }
       ],
       "sortOrder": 1,
       "comingSoon": false,
       "coordinates": "https://yandex.ru/maps/213/moscow/house/ulitsa_polyany_8/Z04YcwJmSUEAQFtvfXl3dH9iYQ==/?ll=37.556047%2C55.565316&z=16",
       "socialLinks": {
-        "telegram": "@medisson_lounge1",
-        "instagram": "@medisson.lounge1",
-        "whatsapp": "+796896800021"
+        "telegram": "@medisson_lounge",
+        "instagram": "@medisson.lounge",
+        "whatsapp": "+79689680002"
       }
     },
     {
@@ -315,7 +315,7 @@
     {
       "id": 1,
       "slug": "grand-opening-ramenki",
-      "title": "123",
+      "title": "Открытие Medisson Select Раменки",
       "date": "07.12.2025",
       "category": "Мероприятия",
       "image": "/uploads/news/1766724387415-news-hero-cover-celebration.jpg",

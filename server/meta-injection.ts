@@ -28,6 +28,13 @@ interface SEOMeta {
   ogType?: string;
 }
 
+interface TrackingConfig {
+  yandexMetrika: string;
+  googleSearchConsole: string;
+  googleAnalytics: string;
+  customHeadScripts: string;
+}
+
 interface SiteData {
   seo: {
     home: SEOMeta;
@@ -51,6 +58,7 @@ interface SiteData {
     image?: string;
     date: string;
   }>;
+  trackingConfig?: TrackingConfig;
 }
 
 // ==================== CONSTANTS ====================
@@ -350,6 +358,42 @@ function injectMetaTags(html: string, meta: MetaData): string {
   return result;
 }
 
+/**
+ * Inject tracking scripts into HTML <head> section
+ * Scripts are inserted just before </head> for optimal loading
+ */
+function injectTrackingScripts(html: string, trackingConfig?: TrackingConfig): string {
+  if (!trackingConfig) return html;
+
+  const scripts: string[] = [];
+
+  // Google Search Console (meta tag - should be first for verification)
+  if (trackingConfig.googleSearchConsole?.trim()) {
+    scripts.push(`<!-- Google Search Console -->\n    ${trackingConfig.googleSearchConsole}`);
+  }
+
+  // Yandex Metrika
+  if (trackingConfig.yandexMetrika?.trim()) {
+    scripts.push(`<!-- Yandex.Metrika -->\n    ${trackingConfig.yandexMetrika}`);
+  }
+
+  // Google Analytics
+  if (trackingConfig.googleAnalytics?.trim()) {
+    scripts.push(`<!-- Google Analytics -->\n    ${trackingConfig.googleAnalytics}`);
+  }
+
+  // Custom scripts
+  if (trackingConfig.customHeadScripts?.trim()) {
+    scripts.push(`<!-- Custom Scripts -->\n    ${trackingConfig.customHeadScripts}`);
+  }
+
+  if (scripts.length === 0) return html;
+
+  // Inject before </head>
+  const injection = `\n    <!-- Analytics (server-injected) -->\n    ${scripts.join('\n    ')}\n  `;
+  return html.replace('</head>', `${injection}</head>`);
+}
+
 // ==================== MAIN EXPORT ====================
 
 /**
@@ -362,7 +406,11 @@ export async function injectMeta(html: string, pathname: string): Promise<string
   try {
     const data = await loadSiteData();
     const meta = await getMetadataForRoute(pathname, data);
-    const injectedHtml = injectMetaTags(html, meta);
+    let injectedHtml = injectMetaTags(html, meta);
+
+    // Inject tracking scripts (analytics)
+    injectedHtml = injectTrackingScripts(injectedHtml, data.trackingConfig);
+
     console.log(`[meta-injection] ${pathname} → ${meta.title}`);
     return injectedHtml;
   } catch (error) {
