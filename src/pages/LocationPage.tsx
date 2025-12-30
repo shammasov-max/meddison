@@ -41,6 +41,12 @@ export const LocationPage = () => {
   const seoKey = `location_${slug}`;
   const seo = siteData?.seo?.[seoKey];
 
+  // Helper to ensure absolute URL for og:image
+  const getAbsoluteUrl = (url: string | undefined): string => {
+    if (!url) return `${SITE_URL}/assets/images/og-image.jpg`;
+    return url.startsWith('http') ? url : `${SITE_URL}${url}`;
+  };
+
   useEffect(() => {
     const loadLocation = async () => {
       if (!slug) return;
@@ -134,7 +140,7 @@ export const LocationPage = () => {
         <meta property="og:url" content={`${SITE_URL}/locations/${slug}`} />
         <meta property="og:title" content={seo?.title || `${location.name} | Medisson Lounge`} />
         <meta property="og:description" content={seo?.description || location.description} />
-        <meta property="og:image" content={seo?.ogImage || location.image} />
+        <meta property="og:image" content={getAbsoluteUrl(seo?.ogImage || location.image)} />
         <link rel="canonical" href={`${SITE_URL}/locations/${slug}`} />
       </Helmet>
       <div className="bg-black min-h-screen text-white font-sans selection:bg-amber-500 selection:text-black">

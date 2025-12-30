@@ -30,7 +30,9 @@ interface AllSEOData {
   [key: string]: SEOData;
 }
 
-const SITE_URL = 'https://medisson-lounge.ru';
+// Use current browser location for admin forms (supports dev/staging environments)
+const getSiteUrl = () => typeof window !== 'undefined' ? window.location.origin : 'https://medisson-lounge.ru';
+const SITE_URL = getSiteUrl();
 
 export const AdminSEO = () => {
   const [seoData, setSeoData] = useState<AllSEOData>({});
@@ -90,8 +92,8 @@ export const AdminSEO = () => {
             '@context': 'https://schema.org',
             '@type': 'Organization',
             name: 'Medisson Lounge',
-            url: 'https://medisson-lounge.ru',
-            logo: 'https://medisson-lounge.ru/assets/logo.svg',
+            url: SITE_URL,
+            logo: `${SITE_URL}/assets/logo.svg`,
             description: 'Сеть премиальных лаунж-баров в Москве',
             telephone: '+7-495-000-00-00',
             email: 'info@medisson-lounge.ru',
@@ -146,16 +148,12 @@ export const AdminSEO = () => {
       const currentData = dataService.getData();
       if (!currentData) throw new Error('No data loaded');
 
-      // Update SEO section in data.json
+      // Update SEO section in data.json (including dynamic keys for news_/location_)
       const updatedData = {
         ...currentData,
         seo: {
           ...currentData.seo,
-          home: seoData.home,
-          news: seoData.news,
-          locations: seoData.locations,
-          privacy: seoData.privacy,
-          loyalty: seoData.loyalty,
+          ...seoData, // Include all seoData keys (home, news, locations, privacy, loyalty, news_*, location_*)
         },
         robotsConfig,
         jsonLdSchemas,
@@ -725,7 +723,7 @@ Allow: /
                     <label className="block text-sm text-white/50 mb-1">URL сайта издателя</label>
                     <input
                       type="text"
-                      value={jsonLdSchemas.newsArticleDefaults?.publisherUrl || 'https://medisson-lounge.ru'}
+                      value={jsonLdSchemas.newsArticleDefaults?.publisherUrl || SITE_URL}
                       onChange={(e) => setJsonLdSchemas(prev => ({
                         ...prev,
                         newsArticleDefaults: { 
@@ -741,7 +739,7 @@ Allow: /
                     <label className="block text-sm text-white/50 mb-1">URL логотипа издателя</label>
                     <input
                       type="text"
-                      value={jsonLdSchemas.newsArticleDefaults?.publisherLogo || 'https://medisson-lounge.ru/assets/logo.svg'}
+                      value={jsonLdSchemas.newsArticleDefaults?.publisherLogo || `${SITE_URL}/assets/logo.svg`}
                       onChange={(e) => setJsonLdSchemas(prev => ({
                         ...prev,
                         newsArticleDefaults: { 
@@ -786,7 +784,7 @@ Allow: /
                         '@type': 'NewsArticle',
                         mainEntityOfPage: {
                           '@type': 'WebPage',
-                          '@id': 'https://medisson-lounge.ru/news/example-slug'
+                          '@id': `${SITE_URL}/news/example-slug`
                         },
                         headline: 'Заголовок новости из данных статьи',
                         description: 'Описание новости',
@@ -795,14 +793,14 @@ Allow: /
                         author: {
                           '@type': 'Organization',
                           name: jsonLdSchemas.newsArticleDefaults?.publisherName || 'Medisson Lounge',
-                          url: jsonLdSchemas.newsArticleDefaults?.publisherUrl || 'https://medisson-lounge.ru'
+                          url: jsonLdSchemas.newsArticleDefaults?.publisherUrl || SITE_URL
                         },
                         publisher: {
                           '@type': 'Organization',
                           name: jsonLdSchemas.newsArticleDefaults?.publisherName || 'Medisson Lounge',
                           logo: {
                             '@type': 'ImageObject',
-                            url: jsonLdSchemas.newsArticleDefaults?.publisherLogo || 'https://medisson-lounge.ru/assets/logo.svg'
+                            url: jsonLdSchemas.newsArticleDefaults?.publisherLogo || `${SITE_URL}/assets/logo.svg`
                           }
                         },
                         image: {
@@ -1306,7 +1304,7 @@ Allow: /
                                     }));
                                   }}
                                   className="w-full bg-black border border-white/10 rounded-lg px-4 py-2 text-white text-sm focus:border-pink-500 outline-none"
-                                  placeholder="https://medisson-lounge.ru/news/..."
+                                  placeholder={`${SITE_URL}/news/...`}
                                 />
                               </div>
                             </div>
@@ -1756,13 +1754,13 @@ Allow: /
                       <label className="block text-sm text-white/50 mb-1">URL сайта</label>
                       <input
                         type="text"
-                        value={jsonLdSchemas.breadcrumbs?.siteUrl || 'https://medisson-lounge.ru'}
+                        value={jsonLdSchemas.breadcrumbs?.siteUrl || SITE_URL}
                         onChange={(e) => setJsonLdSchemas(prev => ({
                           ...prev,
                           breadcrumbs: { ...prev.breadcrumbs, siteUrl: e.target.value }
                         }))}
                         className="w-full bg-black border border-white/10 rounded-lg px-4 py-2 text-white text-sm focus:border-amber-500 outline-none"
-                        placeholder="https://medisson-lounge.ru"
+                        placeholder={SITE_URL}
                       />
                     </div>
                   </div>
@@ -1880,19 +1878,19 @@ Allow: /
                             '@type': 'ListItem',
                             position: 1,
                             name: jsonLdSchemas.breadcrumbs?.homeName || 'Главная',
-                            item: jsonLdSchemas.breadcrumbs?.siteUrl || 'https://medisson-lounge.ru'
+                            item: jsonLdSchemas.breadcrumbs?.siteUrl || SITE_URL
                           },
                           {
                             '@type': 'ListItem',
                             position: 2,
                             name: jsonLdSchemas.breadcrumbs?.newsName || 'Новости',
-                            item: `${jsonLdSchemas.breadcrumbs?.siteUrl || 'https://medisson-lounge.ru'}/news`
+                            item: `${jsonLdSchemas.breadcrumbs?.siteUrl || SITE_URL}/news`
                           },
                           {
                             '@type': 'ListItem',
                             position: 3,
                             name: 'Заголовок статьи',
-                            item: `${jsonLdSchemas.breadcrumbs?.siteUrl || 'https://medisson-lounge.ru'}/news/example-slug`
+                            item: `${jsonLdSchemas.breadcrumbs?.siteUrl || SITE_URL}/news/example-slug`
                           }
                         ]
                       }, null, 2))}
@@ -1911,19 +1909,19 @@ Allow: /
                             '@type': 'ListItem',
                             position: 1,
                             name: jsonLdSchemas.breadcrumbs?.homeName || 'Главная',
-                            item: jsonLdSchemas.breadcrumbs?.siteUrl || 'https://medisson-lounge.ru'
+                            item: jsonLdSchemas.breadcrumbs?.siteUrl || SITE_URL
                           },
                           {
                             '@type': 'ListItem',
                             position: 2,
                             name: jsonLdSchemas.breadcrumbs?.newsName || 'Новости',
-                            item: `${jsonLdSchemas.breadcrumbs?.siteUrl || 'https://medisson-lounge.ru'}/news`
+                            item: `${jsonLdSchemas.breadcrumbs?.siteUrl || SITE_URL}/news`
                           },
                           {
                             '@type': 'ListItem',
                             position: 3,
                             name: 'Заголовок статьи',
-                            item: `${jsonLdSchemas.breadcrumbs?.siteUrl || 'https://medisson-lounge.ru'}/news/example-slug`
+                            item: `${jsonLdSchemas.breadcrumbs?.siteUrl || SITE_URL}/news/example-slug`
                           }
                         ]
                       }, null, 2)}

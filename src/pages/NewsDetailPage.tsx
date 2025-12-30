@@ -77,10 +77,12 @@ export const NewsDetailPage = () => {
     );
   }
 
-  // SEO values with fallbacks to article-level meta or defaults
-  const title = articleSeo?.title || newsItem?.metaTitle || `${newsItem?.title} | Medisson Lounge`;
-  const description = articleSeo?.description || newsItem?.metaDescription || newsItem?.description || '';
-  const ogImage = articleSeo?.ogImage || newsItem?.image || '';
+  // SEO values with fallbacks to article defaults
+  const title = articleSeo?.title || `${newsItem?.title} | Medisson Lounge`;
+  const description = articleSeo?.description || newsItem?.description || '';
+  // Ensure og:image is absolute URL for social crawlers
+  const rawOgImage = articleSeo?.ogImage || newsItem?.image || '';
+  const ogImage = rawOgImage.startsWith('http') ? rawOgImage : rawOgImage ? `${SITE_URL}${rawOgImage}` : '';
 
   return (
     <>
@@ -95,7 +97,7 @@ export const NewsDetailPage = () => {
         <link rel="canonical" href={`${SITE_URL}/news/${slug}`} />
       </Helmet>
       <div className="bg-black min-h-screen text-white font-sans selection:bg-amber-500 selection:text-black relative">
-        <JsonLdInjector 
+        <JsonLdInjector
         pageKey={`news_${newsItem.slug}`}
         newsArticleData={{
           slug: newsItem.slug,
@@ -105,9 +107,7 @@ export const NewsDetailPage = () => {
           image: newsItem.image,
           fullContent: newsItem.fullContent,
           category: newsItem.category,
-          location: newsItem.location,
-          metaTitle: newsItem.metaTitle,
-          metaDescription: newsItem.metaDescription
+          location: newsItem.location
         }}
       />
       <Navbar onOpenBooking={() => setIsBookingOpen(true)} />

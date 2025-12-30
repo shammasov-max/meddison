@@ -85,12 +85,18 @@ export interface ContactInfo {
 export interface SEOMeta {
   title: string;
   description: string;
+  ogImage?: string;
+  ogType?: string;
 }
 
 export interface SEOConfig {
   home: SEOMeta;
   news: SEOMeta;
   locations: SEOMeta;
+  privacy?: SEOMeta;
+  loyalty?: SEOMeta;
+  // Dynamic page SEO (keyed by slug: news_slug, location_slug)
+  [key: string]: SEOMeta | undefined;
 }
 
 // ==================== LOCATIONS ====================
@@ -117,9 +123,6 @@ export interface Location {
   coordinates?: string;
   comingSoon?: boolean;
   sortOrder?: number;
-  // Per-item SEO (optional override)
-  metaTitle?: string;
-  metaDescription?: string;
 }
 
 // ==================== NEWS ====================
@@ -133,9 +136,6 @@ export interface NewsItem {
   description: string;
   fullContent: string; // HTML content
   location: string;
-  // Per-item SEO
-  metaTitle?: string;
-  metaDescription?: string;
 }
 
 // ==================== SITE CONTENT (Master) ====================

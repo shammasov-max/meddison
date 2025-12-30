@@ -21,13 +21,22 @@ interface RouteMatch {
   slug?: string;
 }
 
+interface SEOMeta {
+  title: string;
+  description: string;
+  ogImage?: string;
+  ogType?: string;
+}
+
 interface SiteData {
   seo: {
-    home: { title: string; description: string };
-    news: { title: string; description: string };
-    locations: { title: string; description: string };
-    privacy?: { title: string; description: string };
-    loyalty?: { title: string; description: string };
+    home: SEOMeta;
+    news: SEOMeta;
+    locations: SEOMeta;
+    privacy?: SEOMeta;
+    loyalty?: SEOMeta;
+    // Dynamic page SEO (keyed by slug: news_slug, location_slug)
+    [key: string]: SEOMeta | undefined;
   };
   locations: Array<{
     slug: string;
@@ -38,8 +47,6 @@ interface SiteData {
   news: Array<{
     slug: string;
     title: string;
-    metaTitle?: string;
-    metaDescription?: string;
     description: string;
     image?: string;
     date: string;
@@ -184,28 +191,38 @@ async function getMetadataForRoute(pathname: string, data: SiteData): Promise<Me
       const article = data.news.find(n => n.slug === route.slug);
       if (!article) return getNotFoundMeta(pathname);
 
+      // Check for centralized SEO override in data.seo.news_${slug}
+      const newsSeo = data.seo[`news_${route.slug}`];
       return {
-        title: article.metaTitle || article.title,
-        description: article.metaDescription || article.description,
-        image: article.image
-          ? (article.image.startsWith('http') ? article.image : `${BASE_URL}${article.image}`)
-          : `${BASE_URL}/assets/images/og-image.jpg`,
+        title: newsSeo?.title || article.title,
+        description: newsSeo?.description || article.description,
+        image: newsSeo?.ogImage
+          ? (newsSeo.ogImage.startsWith('http') ? newsSeo.ogImage : `${BASE_URL}${newsSeo.ogImage}`)
+          : article.image
+            ? (article.image.startsWith('http') ? article.image : `${BASE_URL}${article.image}`)
+            : `${BASE_URL}/assets/images/og-image.jpg`,
         url: `${BASE_URL}/news/${article.slug}`,
-        type: 'article'
+        type: newsSeo?.ogType || 'article'
       };
 
     case 'location':
       const location = data.locations.find(l => l.slug === route.slug);
       if (!location) return getNotFoundMeta(pathname);
 
+      // Check for centralized SEO override in data.seo.location_${slug}
+      const locationSeoKey = `location_${route.slug}`;
+      const locationSeo = data.seo[locationSeoKey];
+      console.log(`[meta-injection] Location SEO key: ${locationSeoKey}, found: ${!!locationSeo}, title: ${locationSeo?.title}`);
       return {
-        title: `${location.name} | Medisson Lounge`,
-        description: location.description,
-        image: location.image
-          ? (location.image.startsWith('http') ? location.image : `${BASE_URL}${location.image}`)
-          : `${BASE_URL}/assets/images/og-image.jpg`,
+        title: locationSeo?.title || `${location.name} | Medisson Lounge`,
+        description: locationSeo?.description || location.description,
+        image: locationSeo?.ogImage
+          ? (locationSeo.ogImage.startsWith('http') ? locationSeo.ogImage : `${BASE_URL}${locationSeo.ogImage}`)
+          : location.image
+            ? (location.image.startsWith('http') ? location.image : `${BASE_URL}${location.image}`)
+            : `${BASE_URL}/assets/images/og-image.jpg`,
         url: `${BASE_URL}/locations/${location.slug}`,
-        type: 'place'
+        type: locationSeo?.ogType || 'place'
       };
 
     case 'privacy':
@@ -268,65 +285,65 @@ function injectMetaTags(html: string, meta: MetaData): string {
 
   // Replace title
   result = result.replace(
-    /<title>.*?<\/title>/,
-    `<title>${escapeHtml(meta.title)}</title>`
+    /<title[^>]*>.*?<\/title>/,
+    `<title data-rh="true">${escapeHtml(meta.title)}</title>`
   );
 
-  // Replace description
+  // Replace description (add data-rh for React Helmet compatibility)
   result = result.replace(
-    /<meta name="description" content=".*?" \/>/,
-    `<meta name="description" content="${escapeHtml(meta.description)}" />`
+    /<meta name="description" content=".*?"[^>]*\/>/,
+    `<meta data-rh="true" name="description" content="${escapeHtml(meta.description)}" />`
   );
 
   // Replace canonical URL
   result = result.replace(
-    /<link rel="canonical" href=".*?" \/>/,
-    `<link rel="canonical" href="${escapeHtml(meta.url)}" />`
+    /<link rel="canonical" href=".*?"[^>]*\/>/,
+    `<link data-rh="true" rel="canonical" href="${escapeHtml(meta.url)}" />`
   );
 
-  // Open Graph tags
+  // Open Graph tags (add data-rh for React Helmet compatibility)
   result = result.replace(
-    /<meta property="og:type" content=".*?" \/>/,
-    `<meta property="og:type" content="${escapeHtml(meta.type || 'website')}" />`
-  );
-
-  result = result.replace(
-    /<meta property="og:url" content=".*?" \/>/,
-    `<meta property="og:url" content="${escapeHtml(meta.url)}" />`
+    /<meta property="og:type" content=".*?"[^>]*\/>/,
+    `<meta data-rh="true" property="og:type" content="${escapeHtml(meta.type || 'website')}" />`
   );
 
   result = result.replace(
-    /<meta property="og:title" content=".*?" \/>/,
-    `<meta property="og:title" content="${escapeHtml(meta.title)}" />`
+    /<meta property="og:url" content=".*?"[^>]*\/>/,
+    `<meta data-rh="true" property="og:url" content="${escapeHtml(meta.url)}" />`
   );
 
   result = result.replace(
-    /<meta property="og:description" content=".*?" \/>/,
-    `<meta property="og:description" content="${escapeHtml(meta.description)}" />`
+    /<meta property="og:title" content=".*?"[^>]*\/>/,
+    `<meta data-rh="true" property="og:title" content="${escapeHtml(meta.title)}" />`
+  );
+
+  result = result.replace(
+    /<meta property="og:description" content=".*?"[^>]*\/>/,
+    `<meta data-rh="true" property="og:description" content="${escapeHtml(meta.description)}" />`
   );
 
   if (meta.image) {
     result = result.replace(
-      /<meta property="og:image" content=".*?" \/>/,
-      `<meta property="og:image" content="${escapeHtml(meta.image)}" />`
+      /<meta property="og:image" content=".*?"[^>]*\/>/,
+      `<meta data-rh="true" property="og:image" content="${escapeHtml(meta.image)}" />`
     );
   }
 
   // Twitter Card tags
   result = result.replace(
-    /<meta name="twitter:title" content=".*?" \/>/,
-    `<meta name="twitter:title" content="${escapeHtml(meta.title)}" />`
+    /<meta name="twitter:title" content=".*?"[^>]*\/>/,
+    `<meta data-rh="true" name="twitter:title" content="${escapeHtml(meta.title)}" />`
   );
 
   result = result.replace(
-    /<meta name="twitter:description" content=".*?" \/>/,
-    `<meta name="twitter:description" content="${escapeHtml(meta.description)}" />`
+    /<meta name="twitter:description" content=".*?"[^>]*\/>/,
+    `<meta data-rh="true" name="twitter:description" content="${escapeHtml(meta.description)}" />`
   );
 
   if (meta.image) {
     result = result.replace(
-      /<meta name="twitter:image" content=".*?" \/>/,
-      `<meta name="twitter:image" content="${escapeHtml(meta.image)}" />`
+      /<meta name="twitter:image" content=".*?"[^>]*\/>/,
+      `<meta data-rh="true" name="twitter:image" content="${escapeHtml(meta.image)}" />`
     );
   }
 

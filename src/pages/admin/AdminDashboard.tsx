@@ -1,19 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { dataService } from '../../services/dataService';
-import { FileText, MapPin, Utensils, Send, CheckCircle, AlertCircle, Loader2, Play, Square, Users, Bot } from 'lucide-react';
+import { FileText, MapPin, Utensils, Send, CheckCircle, AlertCircle, Loader2, Play, Square, Bot } from 'lucide-react';
 
 interface TelegramStatus {
   configured: boolean;
   polling: boolean;
   token: string | null;
-  subscribersCount: number;
-}
-
-interface TelegramSubscriber {
-  chatId: number;
-  username?: string;
-  firstName?: string;
-  subscribedAt: string;
 }
 
 export const AdminDashboard = () => {
@@ -23,7 +15,6 @@ export const AdminDashboard = () => {
     categoriesCount: 0,
   });
   const [telegramStatus, setTelegramStatus] = useState<TelegramStatus | null>(null);
-  const [subscribers, setSubscribers] = useState<TelegramSubscriber[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -42,14 +33,9 @@ export const AdminDashboard = () => {
 
   const loadTelegramStatus = async () => {
     try {
-      const [statusRes, subsRes] = await Promise.all([
-        fetch('/api/telegram/status'),
-        fetch('/api/telegram/subscribers'),
-      ]);
-      const status = await statusRes.json();
-      const subs = await subsRes.json();
+      const response = await fetch('/api/telegram/status');
+      const status = await response.json();
       setTelegramStatus(status);
-      setSubscribers(subs);
     } catch (error) {
       console.error('Failed to load telegram status:', error);
     }
@@ -195,16 +181,6 @@ export const AdminDashboard = () => {
               {telegramStatus?.polling ? 'Активен' : 'Остановлен'}
             </p>
           </div>
-
-          <div className="bg-zinc-800/50 rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Users size={14} className="text-white/50" />
-              <span className="text-white/50 text-sm">Подписчики</span>
-            </div>
-            <p className="font-medium">
-              {telegramStatus?.subscribersCount || 0}
-            </p>
-          </div>
         </div>
 
         {/* Action Buttons */}
@@ -268,35 +244,6 @@ export const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Subscribers List */}
-        {subscribers.length > 0 && (
-          <div className="mt-6">
-            <h3 className="text-sm font-medium text-white/50 mb-3">Подписчики ({subscribers.length})</h3>
-            <div className="space-y-2">
-              {subscribers.map((sub) => (
-                <div key={sub.chatId} className="flex items-center justify-between bg-zinc-800/50 rounded-lg px-4 py-2">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 text-sm font-medium">
-                      {sub.firstName?.[0] || sub.username?.[0] || '?'}
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">
-                        {sub.firstName || sub.username || `Chat ${sub.chatId}`}
-                      </p>
-                      {sub.username && (
-                        <p className="text-xs text-white/40">@{sub.username}</p>
-                      )}
-                    </div>
-                  </div>
-                  <span className="text-xs text-white/30">
-                    {new Date(sub.subscribedAt).toLocaleDateString('ru-RU')}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Help Text */}
         {!telegramStatus?.configured && (
           <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
@@ -306,14 +253,6 @@ export const AdminDashboard = () => {
                 Настройки бронирования
               </a>{' '}
               и добавьте токен Telegram бота.
-            </p>
-          </div>
-        )}
-
-        {telegramStatus?.configured && subscribers.length === 0 && (
-          <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-            <p className="text-blue-400 text-sm">
-              <strong>Нет подписчиков.</strong> Откройте бота в Telegram и отправьте команду <code className="bg-blue-500/20 px-1 rounded">/start</code> чтобы подписаться на уведомления.
             </p>
           </div>
         )}
