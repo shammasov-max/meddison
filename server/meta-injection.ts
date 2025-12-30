@@ -26,6 +26,8 @@ interface SiteData {
     home: { title: string; description: string };
     news: { title: string; description: string };
     locations: { title: string; description: string };
+    privacy?: { title: string; description: string };
+    loyalty?: { title: string; description: string };
   };
   locations: Array<{
     slug: string;
@@ -130,6 +132,7 @@ async function loadSiteData(): Promise<SiteData> {
 
 /**
  * Get appropriate metadata for the current route
+ * Reads SEO data from data.json (updated by admin panel)
  */
 async function getMetadataForRoute(pathname: string, data: SiteData): Promise<MetaData> {
   const route = parseRoute(pathname);
@@ -183,8 +186,8 @@ async function getMetadataForRoute(pathname: string, data: SiteData): Promise<Me
 
     case 'privacy':
       return {
-        title: 'Политика конфиденциальности | Medisson Lounge',
-        description: 'Политика конфиденциальности и обработки персональных данных Medisson Lounge',
+        title: data.seo.privacy?.title || 'Политика конфиденциальности | Medisson Lounge',
+        description: data.seo.privacy?.description || 'Политика конфиденциальности и обработки персональных данных Medisson Lounge',
         image: `${BASE_URL}/assets/images/og-image.jpg`,
         url: `${BASE_URL}/privacy`,
         type: 'website'
@@ -192,8 +195,8 @@ async function getMetadataForRoute(pathname: string, data: SiteData): Promise<Me
 
     case 'loyalty':
       return {
-        title: 'Программа лояльности | Medisson Lounge',
-        description: 'Присоединяйтесь к программе лояльности Medisson Lounge и получайте эксклюзивные привилегии',
+        title: data.seo.loyalty?.title || 'Программа лояльности | Medisson Lounge',
+        description: data.seo.loyalty?.description || 'Присоединяйтесь к программе лояльности Medisson Lounge и получайте эксклюзивные привилегии',
         image: `${BASE_URL}/assets/images/og-image.jpg`,
         url: `${BASE_URL}/loyalty`,
         type: 'website'

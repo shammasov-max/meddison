@@ -545,7 +545,10 @@ app.post('/api/telegram/setup', async (c) => {
 // Meta injection middleware for HTML requests
 app.use('*', metaInjectionMiddleware);
 
-// Serve static files from dist/ folder (production build)
+// Serve static files from public/ folder FIRST (live data, assets, uploads)
+app.use('*', serveStatic({ root: './public' }));
+
+// Serve static files from dist/ folder (compiled frontend bundles)
 app.use('*', serveStatic({ root: './dist' }));
 
 // SPA fallback - serve index.html for client-side routing

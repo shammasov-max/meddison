@@ -142,29 +142,28 @@ export const AdminSEO = () => {
   const doSave = useCallback(async () => {
     setIsSaving(true);
     try {
-      await fetch('/api/content', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'seo', value: seoData })
-      });
+      // Get current data and merge SEO updates
+      const currentData = dataService.getData();
+      if (!currentData) throw new Error('No data loaded');
 
-      await fetch('/api/content', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'robotsConfig', value: robotsConfig })
-      });
+      // Update SEO section in data.json
+      const updatedData = {
+        ...currentData,
+        seo: {
+          ...currentData.seo,
+          home: seoData.home,
+          news: seoData.news,
+          locations: seoData.locations,
+          privacy: seoData.privacy,
+          loyalty: seoData.loyalty,
+        },
+        robotsConfig,
+        jsonLdSchemas,
+        trackingConfig,
+      };
 
-      await fetch('/api/content', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'jsonLdSchemas', value: jsonLdSchemas })
-      });
-
-      await fetch('/api/content', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'trackingConfig', value: trackingConfig })
-      });
+      // Save to data.json via API
+      await dataService.save(updatedData);
 
       window.dispatchEvent(new Event('content-updated'));
     } catch (error) {
@@ -204,12 +203,22 @@ export const AdminSEO = () => {
     if (field === 'ogImage' && value) {
       setIsSaving(true);
       try {
-        await fetch('/api/content', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key: 'seo', value: newSeoData })
-        });
-        window.dispatchEvent(new Event('content-updated'));
+        const currentData = dataService.getData();
+        if (currentData) {
+          const updatedData = {
+            ...currentData,
+            seo: {
+              ...currentData.seo,
+              home: newSeoData.home,
+              news: newSeoData.news,
+              locations: newSeoData.locations,
+              privacy: newSeoData.privacy,
+              loyalty: newSeoData.loyalty,
+            },
+          };
+          await dataService.save(updatedData);
+          window.dispatchEvent(new Event('content-updated'));
+        }
       } catch (error) {
         console.error('Auto-save failed:', error);
       }
