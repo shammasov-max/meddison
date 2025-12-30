@@ -35,3 +35,18 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Claude Code
+.claude/
+
+# Test files and artifacts
+test-*.cjs
+test-*.mjs
+test-screenshots/
+*test-output.html
+nul
+
+# Screenshots
+*.png
+!public/**/*.png
+!src/**/*.png

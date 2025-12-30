@@ -12,10 +12,6 @@ export const AdminLocations = () => {
   const [currentItem, setCurrentItem] = useState<Partial<Location>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
-  const [previewUrls, setPreviewUrls] = useState<{
-    mainImage?: string;
-    gallery: string[];
-  }>({ gallery: [] });
 
   useEffect(() => {
     loadLocations();

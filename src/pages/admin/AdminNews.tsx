@@ -8,16 +8,10 @@ import { useEnterSave } from '../../hooks/useEnterSave';
 import { usePasteAutoSave } from '../../hooks/usePasteAutoSave';
 import type { NewsItem } from '../../types';
 
-
-// Extend NewsItem to include optional imageUrl from backend
-interface ExtendedNewsItem extends NewsItem {
-  imageUrl?: string;
-}
-
 export const AdminNews = () => {
-  const [news, setNews] = useState<ExtendedNewsItem[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
   const [isEditing, setIsEditing] = useState(false);
-  const [currentItem, setCurrentItem] = useState<Partial<ExtendedNewsItem>>({});
+  const [currentItem, setCurrentItem] = useState<Partial<NewsItem>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [showSource, setShowSource] = useState(false);

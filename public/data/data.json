@@ -206,15 +206,7 @@
         "telegram": "@medisson_lounge1",
         "instagram": "@medisson.lounge1",
         "whatsapp": "+796896800021"
-      },
-      "galleryUrls": [
-        "/assets/locations/butovo-gallery-1.jpg",
-        "/assets/locations/butovo-gallery-2.jpg",
-        "/assets/locations/butovo-gallery-3.jpg",
-        "/assets/locations/butovo-gallery-4.jpg",
-        "blob:http://217.26.27.137:5173/a82b96cb-b80f-4db8-8970-ff22206041ba"
-      ],
-      "imageUrl": "blob:http://217.26.27.137:5173/d90846e9-ca15-4ebb-a510-c730cf03488f"
+      }
     },
     {
       "id": 2,
