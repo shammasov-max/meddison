@@ -370,20 +370,33 @@ export const AdminLocations = () => {
             </div>
           </div>
 
-          {/* Coordinates for Route */}
+          {/* Yandex Maps Link */}
           <div>
             <label className="block text-sm text-white/50 mb-2 flex items-center gap-2">
               <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current text-amber-500" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-              Координаты для маршрута (Яндекс Карты)
+              Ссылка на Яндекс Карты
             </label>
-            <input
-              type="text"
-              value={currentItem.coordinates || ''}
-              onChange={e => setCurrentItem({...currentItem, coordinates: e.target.value})}
-              className="w-full bg-black border border-white/10 rounded-lg px-4 py-2 text-white focus:border-amber-500 outline-none"
-              placeholder="55.123456,37.123456 (широта,долгота)"
-            />
-            <p className="text-xs text-white/40 mt-1">Введите координаты для кнопки "Доехать" (можно найти в Яндекс Картах)</p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={currentItem.coordinates || ''}
+                onChange={e => setCurrentItem({...currentItem, coordinates: e.target.value})}
+                className="flex-1 bg-black border border-white/10 rounded-lg px-4 py-2 text-white focus:border-amber-500 outline-none"
+                placeholder="https://yandex.ru/maps/?ll=37.123456,55.123456&z=17"
+              />
+              {currentItem.coordinates && (
+                <button
+                  type="button"
+                  onClick={() => window.open(currentItem.coordinates, '_blank')}
+                  className="px-4 py-2 bg-amber-500/10 hover:bg-amber-500 hover:text-black border border-amber-500/30 hover:border-amber-500 rounded-lg transition-colors flex items-center gap-2"
+                  title="Предпросмотр"
+                >
+                  <Icons.ExternalLink size={18} />
+                  Предпросмотр
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-white/40 mt-1">Вставьте полную ссылку на локацию из Яндекс Карт (скопируйте из адресной строки браузера)</p>
           </div>
 
           {/* Descriptions */}

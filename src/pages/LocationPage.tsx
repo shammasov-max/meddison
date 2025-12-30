@@ -71,7 +71,9 @@ export const LocationPage = () => {
     setCurrentSlide((prev) => (prev - 1 + location.gallery.length) % location.gallery.length);
   };
 
-  const mapLink = `https://yandex.ru/maps/?rtext=~${location.address}&rtt=auto`;
+  const mapLink = location.coordinates && location.coordinates.startsWith('http')
+    ? location.coordinates
+    : `https://yandex.ru/maps/?rtext=~${encodeURIComponent(location.address)}&rtt=auto`;
 
   return (
     <div className="bg-black min-h-screen text-white font-sans selection:bg-amber-500 selection:text-black">
@@ -219,15 +221,24 @@ export const LocationPage = () => {
                   value: location.phone, 
                   delay: 0.2 
                 }
-              ].map((item, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={isDev ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={devTransition({ delay: item.delay, duration: 0.5 })}
-                  className="group relative p-6 rounded-xl border border-white/5 bg-zinc-900/40 backdrop-blur-md hover:bg-zinc-900/60 hover:border-amber-500/30 transition-all duration-500 flex flex-col items-center justify-center text-center min-h-[160px]"
-                >
+              ].map((item, idx) => {
+                const Component = idx === 0 ? motion.a : motion.div;
+                const linkProps = idx === 0 ? {
+                  href: mapLink,
+                  target: "_blank",
+                  rel: "noopener noreferrer"
+                } : {};
+
+                return (
+                  <Component
+                    key={idx}
+                    {...linkProps}
+                    initial={isDev ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={devTransition({ delay: item.delay, duration: 0.5 })}
+                    className={`group relative p-6 rounded-xl border border-white/5 bg-zinc-900/40 backdrop-blur-md hover:bg-zinc-900/60 hover:border-amber-500/30 transition-all duration-500 flex flex-col items-center justify-center text-center min-h-[160px] ${idx === 0 ? 'cursor-pointer' : ''}`}
+                  >
                   {/* Hover Glow Effect */}
                   <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-xl" />
                   
@@ -251,8 +262,9 @@ export const LocationPage = () => {
                       {item.value}
                     </p>
                   </div>
-                </motion.div>
-              ))}
+                </Component>
+              );
+              })}
             </div>
           </div>
         </section>
