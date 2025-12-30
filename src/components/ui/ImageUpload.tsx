@@ -106,8 +106,8 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     fileInputRef.current?.click();
   };
 
-  // Check if value is a valid URL for preview
-  const isValidUrl = value && (value.startsWith('http') || value.startsWith('data:'));
+  // Check if value is a valid URL for preview (supports http, data:, and relative paths)
+  const isValidUrl = value && (value.startsWith('http') || value.startsWith('data:') || value.startsWith('/'));
   const showPreview = value && isValidUrl;
 
   return (
