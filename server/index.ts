@@ -18,9 +18,10 @@ import { serveStatic } from '@hono/node-server/serve-static';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = 3001;
-const DATA_PATH = join(__dirname, '../public/data/data.json');
-const UPLOADS_PATH = join(__dirname, '../public/uploads');
+const DATA_PATH = join(__dirname, '../storage/data/data.json');
+const UPLOADS_PATH = join(__dirname, '../storage/uploads');
 const SERVER_DATA_PATH = join(__dirname, 'data');
+const STORAGE_PATH = join(__dirname, '../storage');
 
 // Ensure directories exist
 await mkdir(UPLOADS_PATH, { recursive: true });
@@ -545,10 +546,11 @@ app.post('/api/telegram/setup', async (c) => {
 // Meta injection middleware for HTML requests
 app.use('*', metaInjectionMiddleware);
 
-// Serve static files from public/ folder FIRST (live data, assets, uploads)
-app.use('*', serveStatic({ root: './public' }));
+// Serve dynamic content from storage/ (uploads and data - NOT copied by Vite)
+app.use('/uploads/*', serveStatic({ root: './storage' }));
+app.use('/data/*', serveStatic({ root: './storage' }));
 
-// Serve static files from dist/ folder (compiled frontend bundles)
+// Serve static files from dist/ folder (compiled frontend + static assets from public/)
 app.use('*', serveStatic({ root: './dist' }));
 
 // SPA fallback - serve index.html for client-side routing

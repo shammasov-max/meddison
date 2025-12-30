@@ -119,8 +119,8 @@ async function loadSiteData(): Promise<SiteData> {
     return dataCache;
   }
 
-  // Load from file
-  const dataPath = join(__dirname, '../public/data/data.json');
+  // Load from file (storage/ directory - dynamic content outside Vite's scope)
+  const dataPath = join(__dirname, '../storage/data/data.json');
   const data = await readFile(dataPath, 'utf8');
   dataCache = JSON.parse(data);
   dataCacheTime = now;

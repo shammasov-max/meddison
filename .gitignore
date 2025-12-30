@@ -39,6 +39,9 @@ next-env.d.ts
 # Claude Code
 .claude/
 
+# Playwright MCP screenshots
+.playwright-mcp/
+
 # Test files and artifacts
 test-*.cjs
 test-*.mjs
@@ -47,6 +50,4 @@ test-screenshots/
 nul
 
 # Screenshots
-*.png
-!public/**/*.png
-!src/**/*.png
+
