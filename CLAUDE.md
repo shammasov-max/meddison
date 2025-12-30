@@ -20,7 +20,7 @@ This reduces token usage by 90%+ and ensures you have accurate project context.
 |----------|------|
 | **Project Index** | [PROJECT_INDEX.md](./PROJECT_INDEX.md) |
 | **Architecture** | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) |
-| **API Reference** | [docs/API.md](./docs/API.md) |
+| **Infrastructure** | [docs/INFRASTRUCTURE.md](./docs/INFRASTRUCTURE.md) |
 
 ---
 
@@ -28,7 +28,7 @@ This reduces token usage by 90%+ and ensures you have accurate project context.
 
 **Medisson Lounge** is a premium lounge bar website for a Moscow-based hookah/restaurant chain.
 
-- **Stack**: React 18 + Vite 7 + TypeScript + Tailwind CSS
+- **Stack**: React 18 + Vite 7 + TypeScript + Tailwind CSS + Hono
 - **Domain**: medisson-lounge.ru
 - **Locale**: Russian (ru_RU)
 - **Locations**: 2 (Butovo active, Select Ramenki coming soon)
@@ -40,6 +40,7 @@ This reduces token usage by 90%+ and ensures you have accurate project context.
 ```
 src/main.tsx          # App bootstrap
 src/App.tsx           # Routes definition
+server/index.ts       # Unified server (API + Vite middleware)
 index.html            # HTML template with SEO
 vite.config.ts        # Build configuration
 ```
@@ -62,9 +63,17 @@ src/
 ├── types/            # TypeScript interfaces (index.ts)
 └── utils/            # Utilities (lazyRetry, animation, iconResolver)
 
-server/               # Backend API (index.ts - port 3001)
-tests/                # Test files (data-persistence, content-updates, routes)
-public/data/          # Runtime JSON: data.json (unified)
+server/               # Backend (Hono + Vite middleware)
+├── index.ts          # Unified server entry (port 3001)
+├── meta-injection.ts # Server-side SEO meta injection
+└── telegram.ts       # Telegram bot integration
+
+storage/              # Runtime data (outside Vite scope)
+├── data/data.json    # Unified site data
+└── uploads/          # User uploaded files
+
+tests/                # Test suites
+public/assets/        # Static assets (images, fonts)
 ```
 
 ---
@@ -72,9 +81,10 @@ public/data/          # Runtime JSON: data.json (unified)
 ## Development Commands
 
 ```bash
-npm run dev      # Start dev server (http://127.0.0.1:5173)
-npm run build    # Production build
-npm run preview  # Preview production build
+npm run dev      # Start dev server (http://localhost:3001) with HMR
+npm run build    # Production build → dist/
+npm start        # Production server (http://localhost:3001)
+npm run preview  # Build + start production server
 ```
 
 ---
@@ -96,7 +106,7 @@ export const ComponentName = ({ prop }: Props) => {
 // Unified data service (src/services/dataService.ts)
 import { dataService } from './services/dataService';
 
-await dataService.load();           // Load data (API → static fallback)
+await dataService.load();           // Load data from API
 const data = dataService.getData(); // Get cached data (sync)
 await dataService.save(newData);    // Save to backend API
 ```
@@ -119,18 +129,19 @@ const { data, loading } = useData();
 - **Theme**: Dark luxury aesthetic
 
 ### Routing
-- Public pages at root (`/`, `/news`, `/lounge/:slug`)
+- Public pages at root (`/`, `/news`, `/locations/:slug`)
 - Admin pages under `/admin/*` (protected)
-- Legacy redirects: `/butovo` -> `/lounge/butovo`
+- Legacy redirects: `/butovo` -> `/locations/butovo`
 
 ### Data Layer
-- Single unified JSON file: `public/data/data.json`
+- Single unified JSON file: `storage/data/data.json`
 - Single data service: `src/services/dataService.ts`
 - Types defined in: `src/types/index.ts`
-- Backend API: `server/index.ts` (port 3001)
+- Server handles API + static serving: `server/index.ts`
 
 ### SEO
-- `react-helmet-async` for meta tags
+- Server-side meta injection: `server/meta-injection.ts`
+- `react-helmet-async` for client-side meta updates
 - `JsonLdInjector` for structured data
 - Canonical URLs on all pages
 
@@ -143,23 +154,24 @@ const { data, loading } = useData();
 1. Create component in `src/pages/`
 2. Add route in `src/App.tsx`
 3. Use lazy loading: `lazyRetry(() => import('./pages/NewPage'))`
+4. Add meta injection in `server/meta-injection.ts` (if SEO needed)
 
 ### Add a New Location
 
-1. Add entry to `locations` array in `public/data/data.json`
+1. Add entry to `locations` array in `storage/data/data.json`
 2. Add images to `public/assets/locations/`
-3. Page auto-generates at `/lounge/{slug}`
+3. Page auto-generates at `/locations/{slug}`
 
 ### Add News Article
 
-1. Add entry to `news` array in `public/data/data.json`
+1. Add entry to `news` array in `storage/data/data.json`
 2. Add image to `public/assets/images/`
 3. Page auto-generates at `/news/{slug}`
 
 ### Edit Homepage Content
 
-1. Modify sections in `public/data/data.json`
-2. Or use admin panel at `/admin/content`
+1. Use admin panel at `/admin/content`
+2. Or modify sections in `storage/data/data.json`
 
 ---
 
@@ -178,15 +190,9 @@ Test files in `tests/` directory:
 - `data-persistence.test.ts` - Backend API tests
 - `content-updates.test.ts` - Content update tests
 - `routes.test.ts` - Route validation tests
+- `meta-injection.test.ts` - Server-side meta injection tests
 
 Run: `npm run test:all`
-
----
-
-## API Proxy
-
-Dev server proxies `/api/*` to `http://localhost:3001` (backend server).
-Run backend with: `npm run server`
 
 ---
 
@@ -206,4 +212,6 @@ Run backend with: `npm run server`
 For detailed documentation, see:
 
 - **[PROJECT_INDEX.md](./PROJECT_INDEX.md)** - Complete project structure and module reference
-- **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** - System architecture 
+- **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** - System architecture
+- **[docs/INFRASTRUCTURE.md](./docs/INFRASTRUCTURE.md)** - Server dev/prod modes
+- **[docs/ROUTE_DATA_QUICK_REF.md](./docs/ROUTE_DATA_QUICK_REF.md)** - Route-data mapping

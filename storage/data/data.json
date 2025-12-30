@@ -146,12 +146,12 @@
   },
   "seo": {
     "home": {
-      "title": "Medisson Lounge | Премиальный отдых в Москве",
-      "description": "Сеть премиальных лаунж-баров в Москве. Авторская кухня, дымные коктейли и неповторимая атмосфера."
+      "title": "TEST SEO TITLE - Home Page",
+      "description": "TEST SEO DESCRIPTION - This is a test description for the home page to verify meta injection."
     },
     "news": {
-      "title": "Новости и события | Medisson Lounge",
-      "description": "Афиша мероприятий, акции и новости сети Medisson Lounge."
+      "title": "TEST SEO TITLE - News Page",
+      "description": "TEST SEO DESCRIPTION - This is a test description for the news page."
     },
     "locations": {
       "title": "Наши локации | Medisson Lounge",

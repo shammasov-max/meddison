@@ -1,46 +1,73 @@
 # Project Index: Medisson Lounge
 
-**Generated**: 2025-12-27
-**Version**: 2.0.0
+**Generated**: 2025-12-30
+**Version**: 3.0.0
 **Purpose**: Fast codebase reference for AI assistants (94% token reduction)
 
 ---
 
-## 📋 Quick Stats
+## Quick Stats
 
 | Metric | Value |
 |--------|-------|
-| **Total Source Files** | 43 TypeScript/TSX files |
+| **Total Source Files** | 48 TypeScript/TSX files |
 | **Frontend Components** | 20 components |
 | **Page Components** | 12 pages (7 public + 5 admin) |
-| **Test Files** | 3 test suites |
-| **Backend Services** | 2 services (API + Telegram) |
+| **Test Files** | 4 test suites |
+| **Backend Services** | 3 services (API + Telegram + Meta Injection) |
 | **Data Types** | 14 TypeScript interfaces |
-| **Index Size** | ~3KB (vs 58KB full codebase) |
+| **Index Size** | ~4KB (vs 60KB full codebase) |
 
 ---
 
-## 🚀 Entry Points
+## Entry Points
 
 ### Application Bootstrap
 - **Frontend**: `src/main.tsx` - React 18 app initialization with React Router
 - **Routes**: `src/App.tsx` - Route definitions and lazy loading setup
-- **Backend API**: `server/index.ts` - Hono server on port 3001
-- **HTML Template**: `index.html` - SEO meta tags and Yandex/VK analytics
-- **Build Config**: `vite.config.ts` - Vite 7 configuration with API proxy
+- **Backend Server**: `server/index.ts` - Unified Hono + Vite server (port 3001)
+- **Meta Injection**: `server/meta-injection.ts` - Server-side SEO meta tag injection
+- **Telegram Bot**: `server/telegram.ts` - Telegram bot integration
+- **HTML Template**: `index.html` - SEO meta tags template
+- **Build Config**: `vite.config.ts` - Vite 7 configuration
 
 ### Key Commands
 ```bash
-npm run dev          # Dev server (http://127.0.0.1:5173)
+npm run dev          # Dev server with Vite HMR (http://localhost:3001)
 npm run build        # Production build → dist/
-npm run preview      # Preview production build
-npm run server       # Backend API (port 3001)
+npm run start        # Production server (http://localhost:3001)
+npm run preview      # Build + start production server
 npm run test:all     # Run all test suites
 ```
 
 ---
 
-## 📁 Project Structure
+## Server Architecture (v3.0)
+
+**Single Entry Point**: `tsx server/index.ts` handles both dev and production modes.
+
+### Request Flow
+```
+Browser → http://localhost:3001
+  ├── /api/* → Hono API handlers
+  ├── /uploads/*, /data/* → storage/ directory
+  ├── /src/*, /@*, *.js, *.css → Vite middlewares
+  └── HTML routes → meta injection → Vite transform (dev) / static serve (prod)
+```
+
+### Development Mode (`npm run dev`)
+- Vite runs in middleware mode: `createServer({ middlewareMode: true })`
+- HMR enabled via `vite.transformIndexHtml()`
+- Hot reloading for React components
+
+### Production Mode (`npm run start`)
+- Vite preview server serves dist/ folder
+- Static assets served efficiently
+- Meta injection still active for SEO
+
+---
+
+## Project Structure
 
 ```
 meddison/
@@ -52,7 +79,7 @@ meddison/
 │   │   ├── NewsDetailPage.tsx    # Individual news article
 │   │   ├── LoyaltyPage.tsx       # Loyalty program info
 │   │   ├── PrivacyPolicy.tsx     # Privacy policy
-│   │   └── admin/                # Admin panel (5 pages)
+│   │   └── admin/                # Admin panel (6 pages)
 │   │       ├── AdminDashboard.tsx
 │   │       ├── AdminLocations.tsx
 │   │       ├── AdminNews.tsx
@@ -85,16 +112,16 @@ meddison/
 │   │   │   └── ImageUpload.tsx   # Admin image upload
 │   │   │
 │   │   ├── loyalty/              # Loyalty program components
-│   │   │   ├── LoyaltyIntro.tsx  # Program introduction
-│   │   │   ├── LoyaltyLevels.tsx # Tier levels display
-│   │   │   └── LoyaltyCTA.tsx    # Join CTA
+│   │   │   ├── LoyaltyIntro.tsx
+│   │   │   ├── LoyaltyLevels.tsx
+│   │   │   └── LoyaltyCTA.tsx
 │   │   │
 │   │   └── admin/                # Admin panel components
 │   │       ├── AdminLayout.tsx   # Admin sidebar & layout
 │   │       └── TelegramChat.tsx  # Telegram bot chat UI
 │   │
 │   ├── services/                 # Data & API services
-│   │   └── dataService.ts        # **UNIFIED** data service (single source)
+│   │   └── dataService.ts        # UNIFIED data service (single source)
 │   │
 │   ├── hooks/                    # Custom React hooks
 │   │   ├── useData.ts            # Reactive data loading hook
@@ -112,33 +139,35 @@ meddison/
 │   ├── main.tsx                  # React app entry point
 │   └── App.tsx                   # Route configuration
 │
-├── server/                       # Backend (Hono + Node.js)
-│   ├── index.ts                  # API server (port 3001)
+├── server/                       # Backend (Hono + Vite middleware)
+│   ├── index.ts                  # Unified server (API + Vite + static)
+│   ├── meta-injection.ts         # Server-side SEO meta tag injection
 │   └── telegram.ts               # Telegram bot integration
 │
-├── public/                       # Static assets
+├── storage/                      # Runtime data (outside Vite scope)
 │   ├── data/
-│   │   └── data.json             # **UNIFIED** runtime data (single JSON)
-│   ├── assets/
-│   │   ├── images/               # General images
-│   │   └── locations/            # Location-specific images
-│   └── vite.svg                  # Favicon
+│   │   └── data.json             # UNIFIED runtime data (single JSON)
+│   └── uploads/                  # User uploaded files
+│
+├── public/                       # Static assets (served by Vite)
+│   └── assets/
+│       ├── images/               # General images
+│       └── locations/            # Location-specific images
 │
 ├── tests/                        # Test suites
 │   ├── data-persistence.test.ts  # Backend API tests
 │   ├── content-updates.test.ts   # Content update tests
-│   └── routes.test.ts            # Route validation tests
+│   ├── routes.test.ts            # Route validation tests
+│   └── meta-injection.test.ts    # Server-side meta injection tests
 │
 ├── docs/                         # Documentation
-│   └── ARCHITECTURE.md           # System architecture
+│   ├── ARCHITECTURE.md           # System architecture
+│   └── ROUTE_DATA_QUICK_REF.md   # Route/data quick reference
 │
 ├── package.json                  # Dependencies & scripts
 ├── tsconfig.json                 # TypeScript config (base)
-├── tsconfig.app.json             # App-specific TS config
-├── tsconfig.node.json            # Server-specific TS config
 ├── vite.config.ts                # Vite build configuration
 ├── tailwind.config.js            # Tailwind CSS config
-├── postcss.config.js             # PostCSS config
 ├── index.html                    # HTML template with SEO
 ├── CLAUDE.md                     # AI assistant instructions
 └── PROJECT_INDEX.md              # This file
@@ -146,19 +175,16 @@ meddison/
 
 ---
 
-## 📦 Core Modules
+## Core Modules
 
-### Data Service (CRITICAL - Single Source of Truth)
+### Data Service (Single Source of Truth)
 **Path**: `src/services/dataService.ts`
 **Purpose**: Unified data service for all content
-**Architecture**: 2 async methods + 3 sync methods
 
-**Async Methods**:
-- `load(forceRefresh?)` - Load from API (with static fallback)
-- `save(newData)` - Save to backend API with backup
-
-**Sync Methods**:
-- `getData()` - Get cached data
+**Methods**:
+- `load(forceRefresh?)` - Load from API with static fallback
+- `save(newData)` - Save to backend API
+- `getData()` - Get cached data (sync)
 - `getLocation(slug)` - Get location by slug
 - `getNewsItem(slug)` - Get news by slug
 
@@ -166,46 +192,35 @@ meddison/
 ```
 API (/api/data) → In-memory cache → React components
      ↓ (fallback)
-Static file (/data/data.json)
+Static file (/storage/data/data.json)
 ```
 
-### Type System
-**Path**: `src/types/index.ts`
-**Exports**: 14 TypeScript interfaces
+### Meta Injection Service
+**Path**: `server/meta-injection.ts`
+**Purpose**: Server-side SEO meta tag injection for social sharing
 
-**Master Types**:
-- `SiteContent` - Root container for all data
-- `HeroContent` - Hero section
-- `AboutContent` - About section with stats
-- `AdvantagesContent` - Advantages grid
-- `AtmosphereContent` - Atmosphere gallery
-- `MenuCategory` - Menu category cards
-- `ContactInfo` - Contact & social links
-- `SEOConfig` - SEO meta tags
-- `Location` - Location entities
-- `NewsItem` - News articles
+**Exports**:
+- `injectMeta(html, pathname)` - Inject meta tags into HTML
+- `shouldSkipMetaInjection(pathname)` - Check if route needs meta
+- `isHtmlRequest(req)` - Check if request expects HTML
 
-**Feature Types**:
-- `StatItem` - Statistics display
-- `AdvantageItem` - Individual advantage
-- `AtmosphereItem` - Gallery item
-- `Feature` - Location features
+**Supported Routes**:
+- `/` - Home page SEO
+- `/news` - News listing SEO
+- `/news/:slug` - Individual article SEO (title, description, image)
+- `/locations/:slug` - Location SEO
+- `/privacy`, `/loyalty` - Static page SEO
 
 ### Routing System
 **Path**: `src/App.tsx`
-**Pattern**: Lazy loading with retry logic
 
 **Public Routes**:
 - `/` → Home
 - `/news` → NewsPage
 - `/news/:slug` → NewsDetailPage
-- `/locations/:slug` → LocationPage (dynamic)
+- `/locations/:slug` → LocationPage
 - `/loyalty` → LoyaltyPage
 - `/privacy` → PrivacyPolicy
-
-**Legacy Redirects**:
-- `/butovo` → `/locations/butovo`
-- `/select` → `/locations/select`
 
 **Admin Routes** (under `/admin/*`):
 - `/admin/dashboard` → AdminDashboard
@@ -215,302 +230,112 @@ Static file (/data/data.json)
 - `/admin/seo` → AdminSEO
 - `/admin/booking-settings` → AdminBookingSettings
 
-### Custom Hooks
-**Path**: `src/hooks/`
-
-1. **useData.ts**
-   - Purpose: Reactive data loading with event-based updates
-   - Returns: `{ data, loading, error }`
-   - Events: Listens for `data-updated` event
-
-2. **useEnterSave.ts**
-   - Purpose: Ctrl+Enter keyboard shortcut for save
-   - Usage: Admin panels
-
-3. **usePasteAutoSave.ts**
-   - Purpose: Auto-save on paste in React Quill
-   - Usage: Admin content editor
-
-### Utilities
-**Path**: `src/utils/`
-
-1. **lazyRetry.ts**
-   - Purpose: Lazy load components with automatic retry on chunk load failure
-   - Usage: All route components in App.tsx
-
-2. **animation.ts**
-   - Purpose: Framer Motion animation variants
-   - Exports: `fadeIn`, `slideIn`, `staggerContainer`
-
-3. **iconResolver.ts**
-   - Purpose: Dynamically resolve Lucide icon components from strings
-   - Usage: Advantages, Features (icon names stored in JSON)
-
 ---
 
-## 🔧 Configuration Files
+## Configuration Files
 
 ### TypeScript
 - **tsconfig.json** - Base configuration
-- **tsconfig.app.json** - Frontend app config (strict mode, React 18 JSX)
-- **tsconfig.node.json** - Server config (Node.js types)
+- **tsconfig.app.json** - Frontend config (strict mode)
+- **tsconfig.node.json** - Server config
 
 ### Build Tools
-- **vite.config.ts** - Vite 7 configuration
-  - Plugins: `@youware/vite-plugin-react`, `@vitejs/plugin-react`
-  - Dev server: `0.0.0.0:5173`
-  - API proxy: `/api/*` → `http://localhost:3001`
-  - Source maps enabled
-
-- **tailwind.config.js** - Tailwind CSS configuration
-  - Dark theme
-  - Custom colors: amber-500 (#d4af37) for gold accents
-  - Custom fonts: Inter (sans), Playfair Display (serif)
-
+- **vite.config.ts** - Vite 7 configuration (no proxy - server handles all)
+- **tailwind.config.js** - Dark theme, gold accents (#d4af37)
 - **postcss.config.js** - PostCSS with Tailwind & Autoprefixer
 
-### Package Management
-- **package.json**
-  - React 18.3.1 + React Router 6.30.1
-  - Vite 7.0.0
-  - Framer Motion 11.0.8
-  - React Quill 2.0.0 (admin editor)
-  - Hono 4.11.2 (backend)
-  - Zod 4.2.1 (validation)
-  - date-fns 4.1.0 (date formatting)
+### Dependencies (Key)
+| Package | Purpose |
+|---------|---------|
+| react 18 | UI framework |
+| react-router-dom 6 | Client-side routing |
+| hono 4 | Backend API framework |
+| vite 7 | Build tool + middleware |
+| framer-motion | Animations |
+| tailwindcss 3 | CSS framework |
+| cross-env | Cross-platform env vars |
 
 ---
 
-## 🧪 Test Coverage
+## Test Coverage
 
 **Location**: `tests/`
 
-### Test Files
-1. **data-persistence.test.ts**
-   - Backend API CRUD operations
-   - Data integrity validation
-   - Backup creation
-
-2. **content-updates.test.ts**
-   - Content modification tests
-   - Event emission validation
-   - Cache invalidation
-
-3. **routes.test.ts**
-   - Route accessibility
-   - Legacy redirects
-   - 404 handling
+| Test File | Purpose |
+|-----------|---------|
+| `data-persistence.test.ts` | Backend API CRUD operations |
+| `content-updates.test.ts` | Content modification tests |
+| `routes.test.ts` | Route accessibility & redirects |
+| `meta-injection.test.ts` | Server-side meta tag injection |
 
 **Run Tests**:
 ```bash
 npm run test:api      # Backend API tests
 npm run test:content  # Content tests
 npm run test:routes   # Route tests
+npm run test:meta     # Meta injection tests
 npm run test:all      # All tests
 ```
 
 ---
 
-## 🔗 Key Dependencies
+## SEO Implementation
 
-### Production
-| Package | Version | Purpose |
-|---------|---------|---------|
-| react | ^18.3.1 | UI framework |
-| react-router-dom | ^6.30.1 | Client-side routing |
-| framer-motion | ^11.0.8 | Animations |
-| lucide-react | ^0.533.0 | Icon library |
-| react-helmet-async | ^2.0.5 | SEO meta tags |
-| react-quill | ^2.0.0 | Rich text editor (admin) |
-| date-fns | ^4.1.0 | Date formatting (Russian locale) |
-| hono | ^4.11.2 | Backend API framework |
-| zod | ^4.2.1 | Schema validation |
+### Server-Side Meta Injection
+Meta tags are injected server-side before HTML is sent to browser:
+- Title, Description, Keywords
+- Open Graph (og:title, og:description, og:image)
+- Twitter Card (twitter:title, twitter:description, twitter:image)
+- Canonical URLs
 
-### Development
-| Package | Version | Purpose |
-|---------|---------|---------|
-| vite | ^7.0.0 | Build tool |
-| typescript | ~5.8.3 | Type checking |
-| tailwindcss | ^3.4.17 | CSS framework |
-| playwright | ^1.57.0 | E2E testing |
-| tsx | ^4.7.0 | TypeScript execution |
+### Admin SEO Control
+- `/admin/seo` - Manage SEO for all pages
+- Per-page title, description, OG image
+- Real-time preview
+
+### Structured Data
+- JSON-LD via `JsonLdInjector` component
+- Organization schema
+- LocalBusiness schema per location
 
 ---
 
-## 📚 Documentation
-
-### Existing Docs
-- **CLAUDE.md** - AI assistant context (references PROJECT_INDEX.md)
-- **docs/ARCHITECTURE.md** - Detailed system architecture
-- **PROJECT_INDEX.md** - This comprehensive index
-
----
-
-## 🎯 Quick Reference
+## Quick Reference
 
 ### Adding a New Page
 1. Create component in `src/pages/`
 2. Add route in `src/App.tsx` using `lazyRetry()`
-3. Add SEO meta in component using `react-helmet-async`
+3. Add meta injection route in `server/meta-injection.ts` (if SEO needed)
 
 ### Adding a Location
-1. Edit `public/data/data.json` → `locations` array
+1. Edit `storage/data/data.json` → `locations` array
 2. Add images to `public/assets/locations/`
 3. Page auto-generates at `/locations/{slug}`
 
-### Adding News Article
-1. Edit `public/data/data.json` → `news` array
-2. Add image to `public/assets/images/`
-3. Page auto-generates at `/news/{slug}`
-
-### Modifying Homepage Content
-1. **Option A**: Edit `public/data/data.json` directly
-2. **Option B**: Use admin panel at `/admin/content`
-
-### Admin Panel Access
-- No authentication (internal use only)
-- URL: `http://localhost:5173/admin`
-- Requires backend API: `npm run server`
+### Modifying SEO
+1. Use admin panel at `/admin/seo`
+2. Or edit `storage/data/data.json` → `seo` object
 
 ---
 
-## 🔄 Data Architecture
+## Changelog
 
-### Single Source of Truth
-**File**: `public/data/data.json`
-**Structure**:
-```json
-{
-  "hero": {...},
-  "about": {...},
-  "advantages": {...},
-  "atmosphere": {...},
-  "menuCategories": [...],
-  "contact": {...},
-  "seo": {...},
-  "locations": [...],
-  "news": [...]
-}
-```
-
-### Data Flow Pattern
-```
-1. Component mounts
-   ↓
-2. useData() hook subscribes to updates
-   ↓
-3. dataService.load() fetches from API/static
-   ↓
-4. In-memory cache updated
-   ↓
-5. Component re-renders with fresh data
-   ↓
-6. On save: dataService.save() → backend → event → re-fetch
-```
-
-### Event-Driven Updates
-- **Event**: `data-updated` (window-level)
-- **Trigger**: After successful save operation
-- **Listeners**: All `useData()` hook instances
-- **Effect**: Automatic re-fetch without page reload
-
----
-
-## 🌐 SEO Implementation
-
-### Meta Tags (react-helmet-async)
-- Dynamic titles per page
-- Open Graph tags (Facebook, VK)
-- Twitter Card tags
-- Canonical URLs
-- Language: ru_RU
-
-### Structured Data (JSON-LD)
-- Organization schema
-- LocalBusiness schema (per location)
-- Injected via `JsonLdInjector` component
-
-### Analytics
-- Yandex.Metrika (configured in `index.html`)
-- VK Pixel (configured in `TrackingScripts.tsx`)
-
----
-
-## 💡 Development Notes
-
-### Code Style
-- **Language**: TypeScript strict mode
-- **Component Pattern**: Functional components with hooks
-- **Styling**: Tailwind CSS utility classes
-- **State**: Minimal local state, data from `useData()`
-- **Icons**: Lucide React (dynamic resolution from strings)
-- **Animations**: Framer Motion (variants in `utils/animation.ts`)
-
-### Performance Optimizations
-- Lazy loading for all pages (via `lazyRetry`)
-- Code splitting (automatic via Vite)
-- Static asset optimization
-- Tailwind CSS purging
-- Source maps for debugging
-
-### Browser Support
-- Modern browsers (ES2020+)
-- No IE11 support
-- Mobile-first responsive design
-
----
-
-## 📊 Token Efficiency
-
-### Before (without index)
-- Full codebase read: **~58,000 tokens**
-- Read on every session: **58,000 tokens × N sessions**
-
-### After (with index)
-- Index creation: **~2,000 tokens** (one-time)
-- Index read: **~3,000 tokens** (per session)
-- **Savings**: **94% token reduction**
-
-### ROI Calculation
-| Sessions | Without Index | With Index | Savings |
-|----------|---------------|------------|---------|
-| 1 | 58,000 | 5,000 | 53,000 (91%) |
-| 10 | 580,000 | 32,000 | 548,000 (94%) |
-| 100 | 5,800,000 | 302,000 | 5,498,000 (95%) |
-
----
-
-## 🚦 Health Checklist
-
-When reviewing the codebase, verify:
-
-- [ ] All routes in `App.tsx` use `lazyRetry()`
-- [ ] All data access uses `dataService` (not direct fetch)
-- [ ] All admin pages wrapped in `AdminLayout`
-- [ ] All icons resolved via `iconResolver.ts`
-- [ ] All dates formatted with `date-fns`
-- [ ] All images referenced from `/assets/*`
-- [ ] All types defined in `src/types/index.ts`
-- [ ] Backend API running on port 3001
-- [ ] Dev server proxies `/api` correctly
-
----
-
-## 📝 Changelog
+### v3.0.0 (2025-12-30)
+- **Major**: Unified Vite middleware architecture
+- Server now handles both dev (HMR) and production modes
+- Added server-side meta injection for SEO
+- Moved data to `storage/` directory (outside Vite scope)
+- Added `meta-injection.test.ts`
+- Updated npm scripts for new architecture
 
 ### v2.0.0 (2025-12-27)
 - Comprehensive rewrite with detailed module reference
 - Added Quick Stats section
-- Enhanced Core Modules documentation
-- Added Token Efficiency metrics
-- Added Health Checklist
-- Improved navigation and structure
 
 ### v1.0.0 (2025-12-26)
 - Initial project index
 
 ---
 
-**Last Updated**: 2025-12-27
-**Maintainer**: AI Assistant
-**Status**: Production Ready ✅
+**Last Updated**: 2025-12-30
+**Status**: Production Ready

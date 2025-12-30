@@ -1,23 +1,23 @@
+import http from 'node:http';
+import { createServer as createViteServer, preview as createPreviewServer, type ViteDevServer, type PreviewServer } from 'vite';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { serve } from '@hono/node-server';
+import { getRequestListener } from '@hono/node-server';
 import { z } from 'zod';
-import { readFile, writeFile, copyFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, copyFile, mkdir, access, constants } from 'node:fs/promises';
 import { join, dirname, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { existsSync, createWriteStream } from 'node:fs';
-import { Readable } from 'node:stream';
-import { pipeline } from 'node:stream/promises';
+import { createReadStream, statSync } from 'node:fs';
 
 // Telegram service
 import * as telegram from './telegram.js';
 
-// Meta injection middleware
-import { metaInjectionMiddleware } from './meta-injection.js';
-import { serveStatic } from '@hono/node-server/serve-static';
+// Meta injection utilities
+import { injectMeta, shouldSkipMetaInjection, isHtmlRequest } from './meta-injection.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = 3001;
+const isDev = process.env.NODE_ENV !== 'production';
 const DATA_PATH = join(__dirname, '../storage/data/data.json');
 const UPLOADS_PATH = join(__dirname, '../storage/uploads');
 const SERVER_DATA_PATH = join(__dirname, 'data');
@@ -100,7 +100,7 @@ function checkAuth(authHeader: string | undefined): boolean {
   return user === ADMIN_USER && pass === ADMIN_PASS;
 }
 
-// ==================== HONO APP ====================
+// ==================== HONO APP (API ROUTES) ====================
 
 const app = new Hono();
 
@@ -111,7 +111,7 @@ app.use('*', cors({
   allowHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// ==================== DATA API (existing) ====================
+// ==================== DATA API ====================
 
 app.get('/api/data', async (c) => {
   try {
@@ -200,9 +200,8 @@ app.post('/api/upload', async (c) => {
   }
 });
 
-// Legacy upload-url endpoint (for backwards compatibility during migration)
+// Legacy upload-url endpoint
 app.post('/api/upload-url', async (c) => {
-  // For direct upload, just return placeholder - actual upload happens via /api/upload
   const body = await c.req.json<{ filename: string; contentType: string; folder?: string }>();
 
   const timestamp = Date.now();
@@ -211,7 +210,6 @@ app.post('/api/upload-url', async (c) => {
   const folder = body.folder || '';
   const publicPath = folder ? `/uploads/${folder}/${filename}` : `/uploads/${filename}`;
 
-  // Return a local upload URL that points to our upload endpoint
   return c.json({
     url: '/api/upload',
     key: publicPath,
@@ -234,10 +232,8 @@ app.post('/api/bookings', async (c) => {
     const body = await c.req.json();
     const parsed = BookingSchema.parse(body);
 
-    // Load existing bookings
     const bookings = await readJsonFile<Booking[]>('bookings.json', []);
 
-    // Create new booking
     const newBooking: Booking = {
       ...parsed,
       id: bookings.length > 0 ? Math.max(...bookings.map(b => b.id)) + 1 : 1,
@@ -245,7 +241,6 @@ app.post('/api/bookings', async (c) => {
       status: 'pending',
     };
 
-    // Send Telegram notification
     const telegramMessageIds = await telegram.sendBookingNotification({
       id: newBooking.id,
       location: newBooking.location,
@@ -327,7 +322,6 @@ const defaultBookingSettings: BookingSettings[] = [
 
 app.get('/api/booking-settings', async (c) => {
   const settings = await readJsonFile<BookingSettings[]>('booking_settings.json', defaultBookingSettings);
-  // Return first settings (for backwards compatibility with BookingModal)
   return c.json(settings[0] || defaultBookingSettings[0]);
 });
 
@@ -343,7 +337,6 @@ app.put('/api/booking-settings', async (c) => {
 
     const settings = await readJsonFile<BookingSettings[]>('booking_settings.json', defaultBookingSettings);
 
-    // Create new settings
     const newSettings: BookingSettings = {
       ...parsed,
       id: settings.length > 0 ? Math.max(...settings.map(s => s.id || 0)) + 1 : 1,
@@ -375,14 +368,13 @@ app.put('/api/booking-settings/:id', async (c) => {
       settings[index] = { ...parsed, id };
       savedSettings = settings[index];
     } else {
-      // Create new with specified id
       savedSettings = { ...parsed, id };
       settings.push(savedSettings);
     }
 
     await writeJsonFile('booking_settings.json', settings);
 
-    // Auto-reconfigure Telegram bot when main settings (id=1 or location_slug='all') are saved
+    // Auto-reconfigure Telegram bot when main settings are saved
     if (savedSettings.location_slug === 'all' || savedSettings.id === 1) {
       console.log('[server] Main settings updated, reconfiguring Telegram bot...');
       try {
@@ -438,19 +430,16 @@ app.get('/api/content/:key', async (c) => {
 
 // ==================== TELEGRAM API ====================
 
-// Get Telegram status
 app.get('/api/telegram/status', async (c) => {
   const status = telegram.getStatus();
   return c.json(status);
 });
 
-// Configure bot token (legacy - use /reconfigure instead)
 app.post('/api/telegram/configure', async (c) => {
   try {
     const body = await c.req.json<{ token: string; chatId?: string }>();
     telegram.configure(body.token, body.chatId || null);
 
-    // Test connection
     const test = await telegram.testConnection();
     if (test.ok) {
       return c.json({ success: true, botName: test.botName });
@@ -462,7 +451,6 @@ app.post('/api/telegram/configure', async (c) => {
   }
 });
 
-// Dynamic reconfiguration (no server restart needed)
 app.post('/api/telegram/reconfigure', async (c) => {
   try {
     const body = await c.req.json<{ token: string | null; chatId: string | null }>();
@@ -487,7 +475,6 @@ app.post('/api/telegram/reconfigure', async (c) => {
   }
 });
 
-// Validate token without configuring
 app.post('/api/telegram/validate', async (c) => {
   try {
     const body = await c.req.json<{ token: string }>();
@@ -498,7 +485,6 @@ app.post('/api/telegram/validate', async (c) => {
   }
 });
 
-// Send test message to chat
 app.post('/api/telegram/test-message', async (c) => {
   try {
     const body = await c.req.json<{ chatId: string }>();
@@ -509,25 +495,21 @@ app.post('/api/telegram/test-message', async (c) => {
   }
 });
 
-// Start polling
 app.post('/api/telegram/start', async (c) => {
   const started = await telegram.startPolling();
   return c.json({ success: started, polling: telegram.isPollingActive() });
 });
 
-// Stop polling
 app.post('/api/telegram/stop', async (c) => {
   telegram.stopPolling();
   return c.json({ success: true, polling: false });
 });
 
-// Test connection
 app.get('/api/telegram/test', async (c) => {
   const result = await telegram.testConnection();
   return c.json(result);
 });
 
-// Legacy setup endpoint (for backwards compatibility)
 app.post('/api/telegram/setup', async (c) => {
   console.log('[server] Telegram setup requested');
   const status = telegram.getStatus();
@@ -541,39 +523,8 @@ app.post('/api/telegram/setup', async (c) => {
   });
 });
 
-// ==================== STATIC FILE SERVING (PRODUCTION) ====================
-
-// Meta injection middleware for HTML requests
-app.use('*', metaInjectionMiddleware);
-
-// Serve dynamic content from storage/ (uploads and data - NOT copied by Vite)
-app.use('/uploads/*', serveStatic({ root: './storage' }));
-app.use('/data/*', serveStatic({ root: './storage' }));
-
-// Serve static files from dist/ folder (compiled frontend + static assets from public/)
-app.use('*', serveStatic({ root: './dist' }));
-
-// SPA fallback - serve index.html for client-side routing
-app.get('*', async (c) => {
-  try {
-    const indexPath = join(__dirname, '../dist/index.html');
-    const html = await readFile(indexPath, 'utf8');
-    return c.html(html);
-  } catch (error) {
-    console.error('[server] Failed to serve index.html:', error);
-    return c.notFound();
-  }
-});
-
-// ==================== 404 HANDLER ====================
-
-app.notFound((c) => {
-  return c.json({ error: 'Not found' }, 404);
-});
-
 // ==================== TELEGRAM INITIALIZATION ====================
 
-// Register callback for handling booking status updates from Telegram
 telegram.setBookingHandledCallback(async (bookingId: number, handledBy: string) => {
   const bookings = await readJsonFile<Booking[]>('bookings.json', []);
   const booking = bookings.find(b => b.id === bookingId);
@@ -585,11 +536,9 @@ telegram.setBookingHandledCallback(async (bookingId: number, handledBy: string) 
   }
 });
 
-// Auto-configure bot from saved settings
 async function initTelegram() {
   try {
     const settings = await readJsonFile<BookingSettings[]>('booking_settings.json', []);
-    // Find main settings (location_slug='all' or first item)
     const mainSettings = settings.find(s => s.location_slug === 'all') || settings[0];
 
     if (mainSettings?.telegram_bot_token) {
@@ -603,7 +552,7 @@ async function initTelegram() {
         if (mainSettings.telegram_chat_id) {
           console.log(`[server] Telegram notifications target: ${mainSettings.telegram_chat_id}`);
         } else {
-          console.log('[server] ⚠️ Telegram group chat not configured - notifications will not be sent');
+          console.log('[server] Telegram group chat not configured - notifications will not be sent');
         }
       } else {
         console.log('[server] Telegram bot token invalid:', result.error);
@@ -616,32 +565,178 @@ async function initTelegram() {
   }
 }
 
-// ==================== START SERVER ====================
+// ==================== STATIC FILE SERVING HELPER ====================
 
-console.log(`[server] Starting HonoJS server on port ${PORT}...`);
+function getMimeType(filepath: string): string {
+  const ext = extname(filepath).toLowerCase();
+  const mimeTypes: Record<string, string> = {
+    '.html': 'text/html',
+    '.js': 'application/javascript',
+    '.css': 'text/css',
+    '.json': 'application/json',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+    '.svg': 'image/svg+xml',
+    '.ico': 'image/x-icon',
+    '.woff': 'font/woff',
+    '.woff2': 'font/woff2',
+    '.ttf': 'font/ttf',
+    '.eot': 'application/vnd.ms-fontobject',
+  };
+  return mimeTypes[ext] || 'application/octet-stream';
+}
 
-serve({
-  fetch: app.fetch,
-  port: PORT,
-}, async (info) => {
-  console.log(`[server] HonoJS API running on http://localhost:${info.port}`);
-  console.log(`[server] Data file: ${DATA_PATH}`);
-  console.log(`[server] Uploads: ${UPLOADS_PATH}`);
-  console.log(`[server] Server data: ${SERVER_DATA_PATH}`);
-  console.log('[server] Endpoints:');
-  console.log('  GET  /api/data');
-  console.log('  POST /api/data');
-  console.log('  POST /api/upload');
-  console.log('  POST /api/bookings');
-  console.log('  GET  /api/bookings');
-  console.log('  PUT  /api/bookings/:id/status');
-  console.log('  GET  /api/booking-settings');
-  console.log('  PUT  /api/booking-settings/:id');
-  console.log('  GET  /api/telegram/status');
-  console.log('  POST /api/telegram/configure');
-  console.log('  POST /api/telegram/reconfigure');
-  console.log('  POST /api/telegram/test-message');
+async function serveStaticFile(res: http.ServerResponse, filepath: string): Promise<boolean> {
+  try {
+    await access(filepath, constants.R_OK);
+    const stat = statSync(filepath);
+    if (!stat.isFile()) return false;
 
-  // Initialize Telegram after server starts
-  await initTelegram();
+    res.setHeader('Content-Type', getMimeType(filepath));
+    res.setHeader('Content-Length', stat.size);
+    createReadStream(filepath).pipe(res);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// ==================== MAIN SERVER ====================
+
+async function createServer() {
+  console.log(`[server] Starting in ${isDev ? 'DEVELOPMENT' : 'PRODUCTION'} mode...`);
+
+  // Initialize Vite
+  let vite: ViteDevServer | PreviewServer;
+
+  if (isDev) {
+    // Development: Vite dev server with HMR
+    vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: 'custom',
+    });
+    console.log('[server] Vite dev server initialized (middleware mode)');
+  } else {
+    // Production: Vite preview server for static files
+    vite = await createPreviewServer({
+      preview: {
+        port: 0, // Don't listen on any port - we use middlewares only
+      },
+    });
+    console.log('[server] Vite preview server initialized');
+  }
+
+  // Create HTTP server
+  const server = http.createServer(async (req, res) => {
+    const url = req.url || '/';
+    const pathname = new URL(url, `http://localhost:${PORT}`).pathname;
+
+    try {
+      // ===== API ROUTES → Hono =====
+      if (pathname.startsWith('/api/')) {
+        return getRequestListener(app.fetch)(req, res);
+      }
+
+      // ===== STORAGE ROUTES (uploads, data) =====
+      if (pathname.startsWith('/uploads/') || pathname.startsWith('/data/')) {
+        const storagePath = join(STORAGE_PATH, pathname);
+        const served = await serveStaticFile(res, storagePath);
+        if (served) return;
+        // Fall through to 404
+        res.statusCode = 404;
+        res.end('Not Found');
+        return;
+      }
+
+      // ===== STATIC FILES → Vite middlewares =====
+      // Files with extensions (.js, .css, .png, etc.) or Vite internals
+      const hasExtension = /\.[a-zA-Z0-9]+$/.test(pathname);
+      const isViteInternal = pathname.startsWith('/@') || pathname.startsWith('/node_modules/') || pathname.startsWith('/src/');
+
+      if (hasExtension || isViteInternal) {
+        vite.middlewares(req, res, () => {
+          res.statusCode = 404;
+          res.end('Not Found');
+        });
+        return;
+      }
+
+      // ===== HTML ROUTES (SPA fallback) =====
+      // Only SPA routes (no extension) that accept HTML
+      if (isHtmlRequest(req)) {
+        try {
+          // Read HTML template
+          const htmlPath = isDev
+            ? join(__dirname, '../index.html')
+            : join(__dirname, '../dist/index.html');
+
+          let html = await readFile(htmlPath, 'utf8');
+
+          // Inject meta tags only for public pages (not admin, not static assets)
+          if (!shouldSkipMetaInjection(pathname)) {
+            html = await injectMeta(html, pathname);
+          }
+
+          // In dev mode, transform with Vite (adds HMR scripts, etc.)
+          // Always use '/' as the URL since this is an SPA - all routes serve index.html
+          if (isDev && 'transformIndexHtml' in vite) {
+            html = await vite.transformIndexHtml('/', html);
+          }
+
+          res.setHeader('Content-Type', 'text/html');
+          res.end(html);
+          return;
+        } catch (error) {
+          console.error('[server] HTML serving error:', error);
+          // Fall through to Vite middlewares
+        }
+      }
+
+      // ===== FALLBACK: 404 for unmatched routes =====
+      res.statusCode = 404;
+      res.end('Not Found');
+    } catch (error) {
+      console.error('[server] Request error:', error);
+      res.statusCode = 500;
+      res.end('Internal Server Error');
+    }
+  });
+
+  // Start listening
+  server.listen(PORT, async () => {
+    console.log(`[server] Server running on http://localhost:${PORT}`);
+    console.log(`[server] Mode: ${isDev ? 'development' : 'production'}`);
+    console.log(`[server] Data file: ${DATA_PATH}`);
+    console.log(`[server] Uploads: ${UPLOADS_PATH}`);
+
+    if (isDev) {
+      console.log('[server] HMR enabled via Vite dev server');
+    }
+
+    console.log('[server] API Endpoints:');
+    console.log('  GET  /api/data');
+    console.log('  POST /api/data');
+    console.log('  POST /api/upload');
+    console.log('  POST /api/bookings');
+    console.log('  GET  /api/bookings');
+    console.log('  PUT  /api/bookings/:id/status');
+    console.log('  GET  /api/booking-settings');
+    console.log('  PUT  /api/booking-settings/:id');
+    console.log('  GET  /api/telegram/status');
+    console.log('  POST /api/telegram/configure');
+    console.log('  POST /api/telegram/reconfigure');
+    console.log('  POST /api/telegram/test-message');
+
+    // Initialize Telegram after server starts
+    await initTelegram();
+  });
+}
+
+// Start the server
+createServer().catch((error) => {
+  console.error('[server] Failed to start:', error);
+  process.exit(1);
 });

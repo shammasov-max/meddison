@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { Context, Next } from 'hono';
+import type { IncomingMessage } from 'node:http';
 
 // Define __dirname for ES modules
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -96,13 +96,37 @@ function parseRoute(pathname: string): RouteMatch {
 /**
  * Determine if meta injection should be skipped for this path
  */
-function shouldSkipMetaInjection(pathname: string): boolean {
+export function shouldSkipMetaInjection(pathname: string): boolean {
   return (
     pathname.startsWith('/api') ||      // API endpoints
     pathname.startsWith('/assets') ||   // Static assets
     pathname.startsWith('/uploads') ||  // Uploaded files
+    pathname.startsWith('/data') ||     // Data files
     pathname.startsWith('/admin') ||    // Admin panel
+    pathname.startsWith('/@') ||        // Vite internals
+    pathname.startsWith('/src') ||      // Source files in dev
+    pathname.startsWith('/node_modules') || // Node modules
     pathname.includes('.')              // Files with extensions (.js, .css, etc.)
+  );
+}
+
+/**
+ * Check if request is for HTML content (browser or bot)
+ */
+export function isHtmlRequest(req: IncomingMessage): boolean {
+  const acceptHeader = req.headers['accept'] || '';
+  const userAgent = req.headers['user-agent'] || '';
+
+  return (
+    acceptHeader.includes('text/html') ||
+    acceptHeader.includes('*/*') ||
+    userAgent.toLowerCase().includes('bot') ||
+    userAgent.toLowerCase().includes('facebook') ||
+    userAgent.toLowerCase().includes('telegram') ||
+    userAgent.toLowerCase().includes('whatsapp') ||
+    userAgent.toLowerCase().includes('twitter') ||
+    userAgent.toLowerCase().includes('slack') ||
+    userAgent.toLowerCase().includes('discord')
   );
 }
 
@@ -309,62 +333,24 @@ function injectMetaTags(html: string, meta: MetaData): string {
   return result;
 }
 
-// ==================== MIDDLEWARE ====================
+// ==================== MAIN EXPORT ====================
 
 /**
- * Meta injection middleware
- * Intercepts HTML requests and injects route-specific meta tags
+ * Inject meta tags into HTML based on pathname
+ * @param html - The HTML content to inject meta tags into
+ * @param pathname - The URL pathname to determine which meta tags to use
+ * @returns HTML with injected meta tags
  */
-export async function metaInjectionMiddleware(c: Context, next: Next) {
-  const pathname = new URL(c.req.url).pathname;
-
-  // Skip meta injection for API routes, static assets, admin, etc.
-  if (shouldSkipMetaInjection(pathname)) {
-    return next();
-  }
-
-  // Only process HTML requests
-  const acceptHeader = c.req.header('Accept') || '';
-  const userAgent = c.req.header('User-Agent') || '';
-
-  // Check if this is likely an HTML request (browser or bot)
-  const isHtmlRequest =
-    acceptHeader.includes('text/html') ||
-    acceptHeader.includes('*/*') ||
-    userAgent.includes('bot') ||
-    userAgent.includes('Bot') ||
-    userAgent.includes('facebook') ||
-    userAgent.includes('telegram') ||
-    userAgent.includes('whatsapp') ||
-    userAgent.includes('twitter');
-
-  if (!isHtmlRequest) {
-    return next();
-  }
-
+export async function injectMeta(html: string, pathname: string): Promise<string> {
   try {
-    // Load site data
     const data = await loadSiteData();
-
-    // Get metadata for this route
     const meta = await getMetadataForRoute(pathname, data);
-
-    // Read HTML template
-    const htmlPath = join(__dirname, '../dist/index.html');
-    const html = await readFile(htmlPath, 'utf8');
-
-    // Inject meta tags
     const injectedHtml = injectMetaTags(html, meta);
-
-    // Log for debugging
     console.log(`[meta-injection] ${pathname} → ${meta.title}`);
-
-    // Return modified HTML
-    return c.html(injectedHtml);
+    return injectedHtml;
   } catch (error) {
     console.error('[meta-injection] Error:', error);
-    // Fallback to next middleware (static file serving)
-    return next();
+    return html; // Return original HTML on error
   }
 }
 

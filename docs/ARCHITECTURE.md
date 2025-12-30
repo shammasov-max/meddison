@@ -1,5 +1,8 @@
 # Medisson Lounge - Architecture Documentation
 
+**Version**: 3.0.0
+**Updated**: 2025-12-30
+
 ## System Overview
 
 ```
@@ -9,35 +12,60 @@
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐   │
 │  │   Pages      │  │  Components  │  │     Services         │   │
 │  ├──────────────┤  ├──────────────┤  ├──────────────────────┤   │
-│  │ Home         │  │ layout/      │  │ contentService.ts    │   │
-│  │ LocationPage │  │ home/        │  │ locationsService.ts  │   │
-│  │ NewsPage     │  │ ui/          │  │ newsService.ts       │   │
+│  │ Home         │  │ layout/      │  │ dataService.ts       │   │
+│  │ LocationPage │  │ home/        │  │ (Unified data layer) │   │
+│  │ NewsPage     │  │ ui/          │  │                      │   │
 │  │ LoyaltyPage  │  │ loyalty/     │  │                      │   │
 │  │ Admin/*      │  │ admin/       │  │                      │   │
 │  └──────────────┘  └──────────────┘  └──────────────────────┘   │
 ├─────────────────────────────────────────────────────────────────┤
 │                         HOOKS & STATE                            │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │ useContent() - Reactive content with event-based updates│    │
+│  │ useData() - Reactive content with event-based updates   │    │
 │  │ React Router - Client-side routing                      │    │
-│  │ React Helmet - SEO meta tags management                 │    │
+│  │ react-helmet-async - SEO meta tags management           │    │
 │  └─────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                        DATA LAYER                                │
+│                        SERVER (Hono + Vite)                      │
 ├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────────────┐    ┌─────────────────────────────┐     │
-│  │ public/data/*.json  │    │ src/data/content.ts         │     │
-│  │ (Runtime data)      │    │ (Compile-time fallback)     │     │
-│  ├─────────────────────┤    └─────────────────────────────┘     │
-│  │ content.json        │                                        │
-│  │ locations.json      │    API Proxy: /api → localhost:3000   │
-│  │ news.json           │    (Currently using static JSON)      │
-│  └─────────────────────┘                                        │
+│  Entry: server/index.ts (unified dev/prod)                       │
+│                                                                   │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  │
+│  │ Hono API        │  │ Meta Injection  │  │ Vite Middleware │  │
+│  │ /api/*          │  │ SSR SEO tags    │  │ Assets & HMR    │  │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘  │
+├─────────────────────────────────────────────────────────────────┤
+│                         DATA LAYER                               │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │ storage/data/data.json - Unified runtime data            │    │
+│  │ storage/uploads/       - User uploaded files             │    │
+│  │ public/assets/         - Static assets (images, fonts)   │    │
+│  └─────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+## Server Architecture
+
+### Single Entry Point
+
+```bash
+tsx server/index.ts  # Handles both dev and production
+```
+
+### Development Mode (`npm run dev`)
+- Vite runs in middleware mode with HMR
+- `vite.transformIndexHtml()` injects HMR scripts
+- Source files transformed on-the-fly
+
+### Production Mode (`npm start`)
+- Vite preview server serves dist/
+- Pre-built, minified assets
+- Meta injection still active
+
+See [INFRASTRUCTURE.md](./INFRASTRUCTURE.md) for detailed server documentation.
 
 ## Component Architecture
 
@@ -101,82 +129,88 @@ App
 
 ## Data Flow
 
-### Content Loading Pattern
+### Unified Data Service
 
 ```typescript
-// 1. Hook subscribes to content updates
-const content = useContent();
+// src/services/dataService.ts - Single source of truth
+import { dataService } from './services/dataService';
 
-// 2. Service fetches from JSON or API
-const data = await contentService.getAll();
+// Async operations
+await dataService.load();           // Load from API (fallback to static)
+await dataService.save(newData);    // Save to backend
 
-// 3. Events trigger re-fetches
-window.dispatchEvent(new Event('content-updated'));
+// Sync operations (cached data)
+const data = dataService.getData();
+const location = dataService.getLocation('butovo');
+const newsItem = dataService.getNewsItem('article-slug');
 ```
 
-### Service Pattern
-
-All services follow the same pattern:
+### Data Hook Pattern
 
 ```typescript
-export const service = {
-  getAll: async () => {
-    // Fetch from API_URL
-    // Fallback to FALLBACK_DATA on error
-  },
+// React components use the useData() hook
+const { data, loading, hero, about, locations, news } = useData();
 
-  getById: async (id) => {
-    // Fetch single item
-    // Fallback to static data
-  },
+// Hook subscribes to 'data-updated' events for real-time updates
+```
 
-  save: async (item) => {
-    // PATCH to API (disabled in USE_LOCAL_DATA mode)
-    // Returns null if local-only
-  }
-};
+### Event System
+
+```
+Admin Save Action
+      │
+      ▼
+dataService.save(newData)
+      │
+      ▼
+POST /api/data
+      │
+      ▼
+Update cache → window.dispatchEvent('data-updated')
+      │
+      ▼
+All useData() instances re-render
 ```
 
 ## TypeScript Interfaces
 
+All types defined in `src/types/index.ts`:
+
 ### Location
 
 ```typescript
-interface LocationItem {
+interface Location {
   id: number;
   slug: string;
   name: string;
   description: string;
   fullDescription: string;
   image: string;
-  imageUrl?: string;
+  gallery: string[];
   address: string;
   phone: string;
   hours: string;
   menuLink: string;
-  gallery: string[];
-  galleryUrls?: string[];
-  features: LocationFeature[];
-  comingSoon?: boolean;
-  sortOrder?: number;
-  coordinates?: string;
-  socialLinks?: LocationSocialLinks;
+  features: Feature[];
+  socialLinks: SocialLinks;
+  coordinates: string;
+  comingSoon: boolean;
+  sortOrder: number;
 }
 ```
 
-### News
+### NewsItem
 
 ```typescript
 interface NewsItem {
   id: number;
-  slug?: string;
+  slug: string;
   title: string;
   date: string;
   category: string;
   image: string;
-  imageUrl?: string;
   description: string;
-  fullContent?: string;
+  fullContent: string;
   location: string;
   metaTitle?: string;
   metaDescription?: string;
@@ -222,16 +256,16 @@ interface NewsItem {
 
 ```bash
 npm run dev
-# Starts Vite dev server at http://127.0.0.1:5173
-# API proxy: /api → http://localhost:3000
+# Starts unified server at http://localhost:3001
+# HMR enabled via Vite middleware mode
 ```
 
 ### Production Build
 
 ```bash
-npm run build
-# Output: dist/
-# Generates sourcemaps
+npm run build     # Build to dist/
+npm start         # Run production server
+npm run preview   # Build + start
 ```
 
 ### Key Build Features
@@ -240,22 +274,24 @@ npm run build
 - Tree shaking
 - CSS purging (Tailwind)
 - Asset optimization
+- Sourcemaps
 
 ## SEO Implementation
 
-### Meta Tags
+### Server-Side Meta Injection
 
-- `react-helmet-async` for dynamic meta tags
-- Open Graph and Twitter Card support
-- Canonical URLs for each page
+- `server/meta-injection.ts` injects tags before HTML sent to browser
+- Works for all public routes
+- Supports Open Graph and Twitter Cards
 
-### Structured Data
+### Client-Side
 
-- `JsonLdInjector` component injects JSON-LD
-- Organization, LocalBusiness schemas
+- `react-helmet-async` for dynamic updates
+- `JsonLdInjector` for structured data (JSON-LD)
+- Organization and LocalBusiness schemas
 
-### Performance
+## Related Documentation
 
-- Lazy loading for all pages
-- `lazyRetry` utility for failed chunk recovery
-- Preloader component for smooth transitions
+- [PROJECT_INDEX.md](../PROJECT_INDEX.md) - Project structure overview
+- [INFRASTRUCTURE.md](./INFRASTRUCTURE.md) - Detailed server/deployment docs
+- [ROUTE_DATA_QUICK_REF.md](./ROUTE_DATA_QUICK_REF.md) - Route-data mapping

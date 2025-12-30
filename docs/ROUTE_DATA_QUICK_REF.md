@@ -393,7 +393,7 @@ const filtered = filter === 'Все'
 │ Data Service             │ src/services/dataService.ts      │
 │ Data Hook                │ src/hooks/useData.ts             │
 │ Type Definitions         │ src/types/index.ts               │
-│ Unified Data Store       │ public/data/data.json            │
+│ Unified Data Store       │ storage/data/data.json           │
 │ Backend API              │ server/index.ts                  │
 │ Icon Resolver            │ src/utils/iconResolver.ts        │
 ├──────────────────────────┼──────────────────────────────────┤
@@ -431,9 +431,9 @@ const filtered = filter === 'Все'
 **9 Data Objects** (hero, about, advantages, atmosphere, menuCategories, contact, seo, locations, news)
 **2 Access Patterns** (useData hook vs direct service calls)
 **1 Event System** ('data-updated' window event)
-**1 Data Source** (public/data/data.json + API fallback)
+**1 Data Source** (storage/data/data.json via API)
 
 ---
 
-**Last Updated:** 2025-12-28
+**Last Updated:** 2025-12-30
 **Project:** Medisson Lounge (medisson-lounge.ru)
