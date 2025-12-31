@@ -510,7 +510,7 @@ Allow: /
             </button>
             {expandedSections.news && (
               <div className="grid md:grid-cols-2 gap-4">
-                {news.map(article => renderSEOCard(
+                {news.slice().reverse().map(article => renderSEOCard(
                   `news_${article.slug}`,
                   article.title,
                   `${SITE_URL}/news/${article.slug}`,

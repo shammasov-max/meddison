@@ -436,7 +436,7 @@ export const AdminNews = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {news.map(item => (
+              {news.slice().reverse().map(item => (
                 <tr key={item.id} onClick={() => handleEdit(item)} className="hover:bg-white/5 transition-colors cursor-pointer">
                   <td className="p-4 text-white/30">#{item.id}</td>
                   <td className="p-4 font-medium">{item.title}</td>
