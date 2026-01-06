@@ -307,9 +307,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, def
             {/* Left Side: Static Visual */}
             <div className="relative w-full md:w-1/3 h-32 md:h-auto flex-shrink-0 overflow-hidden hidden md:block">
                <div className="absolute inset-0 bg-zinc-900">
-                  <img 
-                    src={hero?.image} 
-                    alt="Atmosphere" 
+                  <img
+                    src={bookingSettings?.image || hero?.image}
+                    alt="Atmosphere"
                     className="w-full h-full object-cover opacity-60 grayscale hover:grayscale-0 transition-all duration-700"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/50 to-transparent" />

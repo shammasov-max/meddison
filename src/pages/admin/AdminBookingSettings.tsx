@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { GlowButton } from '../../components/ui/GlowButton';
+import { ImageUpload } from '../../components/ui/ImageUpload';
 import { Save, Clock, Users, Phone, Mail, FileText, Image, Building, MapPin, MessageCircle, CheckCircle, XCircle, Send, RefreshCw, Loader2 } from 'lucide-react';
 import { useEnterSave } from '../../hooks/useEnterSave';
 import { usePasteAutoSave } from '../../hooks/usePasteAutoSave';
@@ -511,27 +512,16 @@ export const AdminBookingSettings = () => {
             <div>
               <label className="block text-sm font-medium text-white/60 mb-2 flex items-center gap-2">
                 <Image size={16} />
-                URL фотографии
+                Фото заведения
               </label>
-              <input
-                type="text"
+              <ImageUpload
                 value={settings.image || ''}
-                onChange={(e) => handleChange('image', e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder:text-white/30 focus:border-amber-500/50 focus:outline-none transition-colors"
-                placeholder="https://example.com/image.jpg"
+                onChange={(url) => handleChange('image', url)}
+                folder="booking"
+                placeholder="Загрузить фото для окна бронирования"
+                className="w-full"
+                hideUrlInput
               />
-              {settings.image && (
-                <div className="mt-3 rounded-xl overflow-hidden border border-white/10">
-                  <img 
-                    src={settings.image} 
-                    alt="Preview" 
-                    className="w-full h-48 object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                </div>
-              )}
             </div>
           </div>
         </section>
@@ -643,13 +633,13 @@ export const AdminBookingSettings = () => {
           </div>
         </section>
 
-        {/* Booking Rules Section */}
+        {/* Booking Rules Section - commented out (not displayed in booking popup)
         <section className="bg-white/5 border border-white/10 rounded-2xl p-6">
           <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
             <FileText size={20} className="text-amber-500" />
             Правила бронирования
           </h2>
-          
+
           <div>
             <label className="block text-sm font-medium text-white/60 mb-2">
               Текст правил (отображается для гостей)
@@ -663,14 +653,15 @@ export const AdminBookingSettings = () => {
             />
           </div>
         </section>
+        */}
 
-        {/* Contact Info Section */}
+        {/* Contact Info Section - commented out (not displayed in booking popup)
         <section className="bg-white/5 border border-white/10 rounded-2xl p-6">
           <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
             <Phone size={20} className="text-amber-500" />
             Контактная информация
           </h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-white/60 mb-2 flex items-center gap-2">
@@ -701,6 +692,7 @@ export const AdminBookingSettings = () => {
             </div>
           </div>
         </section>
+        */}
           </>
         )}
 

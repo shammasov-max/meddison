@@ -7,6 +7,7 @@ interface ImageUploadProps {
   folder?: string;
   placeholder?: string;
   className?: string;
+  hideUrlInput?: boolean;
 }
 
 export const ImageUpload: React.FC<ImageUploadProps> = ({
@@ -14,7 +15,8 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   onChange,
   folder = 'seo',
   placeholder = 'Загрузить изображение (1200x630 рекомендуется)',
-  className = ''
+  className = '',
+  hideUrlInput = false
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -189,15 +191,17 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       )}
 
       {/* URL Input for manual entry */}
-      <div className="mt-2 flex gap-2">
-        <input
-          type="text"
-          value={value || ''}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="Или введите URL изображения"
-          className="flex-1 bg-black border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-amber-500 outline-none"
-        />
-      </div>
+      {!hideUrlInput && (
+        <div className="mt-2 flex gap-2">
+          <input
+            type="text"
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="Или введите URL изображения"
+            className="flex-1 bg-black border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-amber-500 outline-none"
+          />
+        </div>
+      )}
 
       {error && (
         <p className="mt-2 text-sm text-red-400">{error}</p>
