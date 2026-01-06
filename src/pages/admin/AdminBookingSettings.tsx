@@ -80,6 +80,9 @@ export const AdminBookingSettings = () => {
     { slug: 'select', name: 'Medisson Select' }
   ];
 
+  // Determine if we're on the general settings tab
+  const isGeneralSettings = selectedLocationSlug === 'all';
+
   useEffect(() => {
     fetchAllSettings();
     fetchTelegramStatus();
@@ -337,122 +340,140 @@ export const AdminBookingSettings = () => {
               </div>
             )}
           </div>
-          <p className="text-white/50 text-sm mb-4">
-            Укажите данные Telegram бота для получения уведомлений о бронированиях. Бот перезапустится автоматически при сохранении.
-          </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-white/60 mb-2">
-                Bot Token
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="password"
-                  value={settings.telegram_bot_token || ''}
-                  onChange={(e) => {
-                    handleChange('telegram_bot_token', e.target.value);
-                    setTokenValidation(null);
-                  }}
-                  className="flex-1 bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder:text-white/30 focus:border-blue-500/50 focus:outline-none transition-colors"
-                  placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
-                />
-                <button
-                  onClick={validateToken}
-                  disabled={!settings.telegram_bot_token || isValidatingToken}
-                  className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 rounded-xl text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-                  title="Проверить токен"
-                >
-                  {isValidatingToken ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : tokenValidation?.valid ? (
-                    <CheckCircle size={16} className="text-green-400" />
-                  ) : tokenValidation?.error ? (
-                    <XCircle size={16} className="text-red-400" />
-                  ) : (
-                    <CheckCircle size={16} />
-                  )}
-                </button>
+          {isGeneralSettings ? (
+            // General settings: Only Bot Token
+            <>
+              <p className="text-white/50 text-sm mb-4">
+                Укажите токен Telegram бота для отправки уведомлений о бронированиях. Один бот используется для всех локаций.
+              </p>
+
+              <div>
+                <label className="block text-sm font-medium text-white/60 mb-2">
+                  Bot Token
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="password"
+                    value={settings.telegram_bot_token || ''}
+                    onChange={(e) => {
+                      handleChange('telegram_bot_token', e.target.value);
+                      setTokenValidation(null);
+                    }}
+                    className="flex-1 bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder:text-white/30 focus:border-blue-500/50 focus:outline-none transition-colors"
+                    placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
+                  />
+                  <button
+                    onClick={validateToken}
+                    disabled={!settings.telegram_bot_token || isValidatingToken}
+                    className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 rounded-xl text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                    title="Проверить токен"
+                  >
+                    {isValidatingToken ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : tokenValidation?.valid ? (
+                      <CheckCircle size={16} className="text-green-400" />
+                    ) : tokenValidation?.error ? (
+                      <XCircle size={16} className="text-red-400" />
+                    ) : (
+                      <CheckCircle size={16} />
+                    )}
+                  </button>
+                </div>
+                {tokenValidation && (
+                  <p className={`text-xs mt-1 ${tokenValidation.valid ? 'text-green-400' : 'text-red-400'}`}>
+                    {tokenValidation.valid ? `✓ @${tokenValidation.botName}` : tokenValidation.error}
+                  </p>
+                )}
+                <p className="text-xs text-white/30 mt-1">Токен от @BotFather</p>
               </div>
-              {tokenValidation && (
-                <p className={`text-xs mt-1 ${tokenValidation.valid ? 'text-green-400' : 'text-red-400'}`}>
-                  {tokenValidation.valid ? `✓ @${tokenValidation.botName}` : tokenValidation.error}
-                </p>
+
+              {/* Status info */}
+              {telegramStatus && (
+                <div className="mt-4 p-3 bg-white/5 rounded-lg text-sm grid grid-cols-2 gap-3">
+                  <div>
+                    <span className="text-white/40">Статус:</span>
+                    <span className={`ml-2 ${telegramStatus.polling ? 'text-green-400' : 'text-white/60'}`}>
+                      {telegramStatus.polling ? 'Активен' : 'Остановлен'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-white/40">Токен:</span>
+                    <span className="ml-2 text-white/80">{telegramStatus.token || '—'}</span>
+                  </div>
+                </div>
               )}
-              <p className="text-xs text-white/30 mt-1">Токен от @BotFather</p>
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-white/60 mb-2">
-                Chat ID (группа/канал)
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={settings.telegram_chat_id || ''}
-                  onChange={(e) => {
-                    handleChange('telegram_chat_id', e.target.value);
-                    setTestMessageResult(null);
-                  }}
-                  className="flex-1 bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder:text-white/30 focus:border-blue-500/50 focus:outline-none transition-colors"
-                  placeholder="-1001234567890"
-                />
-                <button
-                  onClick={sendTestMessage}
-                  disabled={!settings.telegram_chat_id || !telegramStatus?.configured || isSendingTestMessage}
-                  className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 rounded-xl text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-                  title="Отправить тестовое сообщение"
-                >
-                  {isSendingTestMessage ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : testMessageResult?.ok ? (
-                    <CheckCircle size={16} className="text-green-400" />
-                  ) : testMessageResult?.error ? (
-                    <XCircle size={16} className="text-red-400" />
-                  ) : (
-                    <Send size={16} />
-                  )}
-                </button>
+              <div className="mt-4 p-3 bg-white/5 rounded-lg text-sm text-white/50">
+                <strong className="text-white/70">Как получить:</strong>
+                <ol className="list-decimal list-inside mt-2 space-y-1">
+                  <li>Создайте бота через @BotFather и получите токен</li>
+                  <li>Добавьте бота в группы для каждой локации</li>
+                  <li>Укажите Chat ID для каждой локации в соответствующей вкладке</li>
+                </ol>
               </div>
-              {testMessageResult && (
-                <p className={`text-xs mt-1 ${testMessageResult.ok ? 'text-green-400' : 'text-red-400'}`}>
-                  {testMessageResult.ok ? '✓ Сообщение отправлено' : testMessageResult.error}
-                </p>
-              )}
-              <p className="text-xs text-white/30 mt-1">ID группы для уведомлений о бронях. Обязательное поле.</p>
-            </div>
-          </div>
+            </>
+          ) : (
+            // Location settings: Only Chat ID
+            <>
+              <p className="text-white/50 text-sm mb-4">
+                Укажите Chat ID группы, куда бот будет отправлять уведомления о бронированиях для этой локации.
+              </p>
 
-          {/* Status info */}
-          {telegramStatus && (
-            <div className="mt-4 p-3 bg-white/5 rounded-lg text-sm grid grid-cols-3 gap-3">
               <div>
-                <span className="text-white/40">Статус:</span>
-                <span className={`ml-2 ${telegramStatus.polling ? 'text-green-400' : 'text-white/60'}`}>
-                  {telegramStatus.polling ? 'Активен' : 'Остановлен'}
-                </span>
+                <label className="block text-sm font-medium text-white/60 mb-2">
+                  Chat ID (группа/канал)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={settings.telegram_chat_id || ''}
+                    onChange={(e) => {
+                      handleChange('telegram_chat_id', e.target.value);
+                      setTestMessageResult(null);
+                    }}
+                    className="flex-1 bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder:text-white/30 focus:border-blue-500/50 focus:outline-none transition-colors"
+                    placeholder="-1001234567890"
+                  />
+                  <button
+                    onClick={sendTestMessage}
+                    disabled={!settings.telegram_chat_id || !telegramStatus?.configured || isSendingTestMessage}
+                    className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 rounded-xl text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                    title="Отправить тестовое сообщение"
+                  >
+                    {isSendingTestMessage ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : testMessageResult?.ok ? (
+                      <CheckCircle size={16} className="text-green-400" />
+                    ) : testMessageResult?.error ? (
+                      <XCircle size={16} className="text-red-400" />
+                    ) : (
+                      <Send size={16} />
+                    )}
+                  </button>
+                </div>
+                {testMessageResult && (
+                  <p className={`text-xs mt-1 ${testMessageResult.ok ? 'text-green-400' : 'text-red-400'}`}>
+                    {testMessageResult.ok ? '✓ Сообщение отправлено' : testMessageResult.error}
+                  </p>
+                )}
+                <p className="text-xs text-white/30 mt-1">ID группы для уведомлений о бронях этой локации.</p>
               </div>
-              <div>
-                <span className="text-white/40">Группа:</span>
-                <span className="ml-2 text-white/80">{telegramStatus.chatId || '—'}</span>
+
+              <div className="mt-4 p-3 bg-white/5 rounded-lg text-sm text-white/50">
+                <strong className="text-white/70">Как получить Chat ID:</strong>
+                <ol className="list-decimal list-inside mt-2 space-y-1">
+                  <li>Добавьте бота в нужную группу</li>
+                  <li>Получите Chat ID через @userinfobot или @getidsbot</li>
+                </ol>
               </div>
-              <div>
-                <span className="text-white/40">Токен:</span>
-                <span className="ml-2 text-white/80">{telegramStatus.token || '—'}</span>
-              </div>
-            </div>
+            </>
           )}
-
-          <div className="mt-4 p-3 bg-white/5 rounded-lg text-sm text-white/50">
-            <strong className="text-white/70">Как получить:</strong>
-            <ol className="list-decimal list-inside mt-2 space-y-1">
-              <li>Создайте бота через @BotFather и получите токен</li>
-              <li>Добавьте бота в нужный чат/группу</li>
-              <li>Получите Chat ID через @userinfobot или @getidsbot</li>
-            </ol>
-          </div>
         </section>
 
+        {/* Location-specific sections - only show for location tabs */}
+        {!isGeneralSettings && (
+          <>
         {/* Basic Info Section */}
         <section className="bg-white/5 border border-white/10 rounded-2xl p-6">
           <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
@@ -680,6 +701,8 @@ export const AdminBookingSettings = () => {
             </div>
           </div>
         </section>
+          </>
+        )}
 
         {/* Hint */}
         <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">

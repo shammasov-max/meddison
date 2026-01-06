@@ -216,6 +216,26 @@ app.post('/api/bookings', async (c) => {
       status: 'pending',
     };
 
+    // Find location-specific chat ID for Telegram notification
+    const bookingSettings = await readJsonFile<BookingSettings[]>('booking_settings.json', []);
+    let locationChatId: string | null = null;
+
+    // Map booking location name to location_slug
+    const locationLower = newBooking.location.toLowerCase();
+    let locationSlug = 'all';
+    if (locationLower.includes('бутово')) {
+      locationSlug = 'butovo';
+    } else if (locationLower.includes('select') || locationLower.includes('раменки')) {
+      locationSlug = 'select';
+    }
+
+    // Find location-specific settings
+    const locationSettings = bookingSettings.find(s => s.location_slug === locationSlug);
+    if (locationSettings?.telegram_chat_id) {
+      locationChatId = locationSettings.telegram_chat_id;
+      console.log(`[server] Using location-specific chatId for ${locationSlug}: ${locationChatId}`);
+    }
+
     const telegramMessageIds = await telegram.sendBookingNotification({
       id: newBooking.id,
       location: newBooking.location,
@@ -224,7 +244,7 @@ app.post('/api/bookings', async (c) => {
       guests: newBooking.guests,
       name: newBooking.name,
       phone: newBooking.phone,
-    });
+    }, locationChatId);
 
     if (Object.keys(telegramMessageIds).length > 0) {
       newBooking.telegramMessageIds = telegramMessageIds;

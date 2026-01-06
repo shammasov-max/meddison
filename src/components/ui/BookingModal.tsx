@@ -48,6 +48,8 @@ interface BookingModalProps {
 
 // Booking settings interface
 interface BookingSettings {
+  id: number;
+  location_slug: string | null;
   title: string;
   description: string;
   image: string | null;
@@ -55,26 +57,28 @@ interface BookingSettings {
   working_hours_end: string;
   max_guests: number;
   min_guests: number;
+  time_slot_interval: number;
+  booking_rules: string | null;
 }
 
 // Use local API - Vite proxies /api/* to localhost:3001
-const SETTINGS_API_URL = '/api/booking-settings';
+const ALL_SETTINGS_API_URL = '/api/booking-settings/all';
 
 export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, defaultLocation }) => {
   const { locations, hero } = useData();
   const [locationName, setLocationName] = useState(defaultLocation || locations[0]?.name || '');
   
-  // Booking settings from backend
-  const [bookingSettings, setBookingSettings] = useState<BookingSettings | null>(null);
-  
-  // Fetch booking settings from local API
+  // All booking settings from backend
+  const [allSettings, setAllSettings] = useState<BookingSettings[]>([]);
+
+  // Fetch all booking settings from local API
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const response = await fetch(SETTINGS_API_URL);
+        const response = await fetch(ALL_SETTINGS_API_URL);
         if (response.ok) {
           const data = await response.json();
-          setBookingSettings(data);
+          setAllSettings(data);
         }
       } catch (err) {
         // Silently use defaults if backend unavailable
@@ -85,6 +89,32 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, def
       fetchSettings();
     }
   }, [isOpen]);
+
+  // Get location-specific settings based on selected location
+  const bookingSettings = useMemo(() => {
+    if (allSettings.length === 0) return null;
+
+    // Map location name to location_slug
+    let locationSlug = 'all';
+    if (locationName.toLowerCase().includes('бутово')) {
+      locationSlug = 'butovo';
+    } else if (locationName.toLowerCase().includes('select') || locationName.toLowerCase().includes('раменки')) {
+      locationSlug = 'select';
+    }
+
+    // Find location-specific settings, fall back to general settings
+    const locationSettings = allSettings.find(s => s.location_slug === locationSlug);
+    const generalSettings = allSettings.find(s => s.location_slug === 'all');
+
+    // Merge: use location-specific if available, otherwise use general
+    if (locationSettings) {
+      return {
+        ...generalSettings, // Base from general
+        ...locationSettings, // Override with location-specific
+      };
+    }
+    return generalSettings || null;
+  }, [allSettings, locationName]);
   
   // Update location if defaultLocation changes or locations become available
   useEffect(() => {
@@ -593,7 +623,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, def
                     <div className="flex items-center justify-between bg-white/5 border border-white/5 rounded-xl p-2">
                       <button
                         type="button"
-                        onClick={() => setGuests(Math.max(1, guests - 1))}
+                        onClick={() => setGuests(Math.max(bookingSettings?.min_guests || 1, guests - 1))}
                         className="w-12 h-12 flex items-center justify-center rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors"
                       >
                         <Minus size={20} />
@@ -601,7 +631,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, def
                       <span className="font-bold text-xl text-white">{guests}</span>
                       <button
                         type="button"
-                        onClick={() => setGuests(Math.min(20, guests + 1))}
+                        onClick={() => setGuests(Math.min(bookingSettings?.max_guests || 20, guests + 1))}
                         className="w-12 h-12 flex items-center justify-center rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors"
                       >
                         <Plus size={20} />

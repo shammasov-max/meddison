@@ -229,7 +229,8 @@ function buildBookingMessage(booking: BookingForTelegram): string {
 // ==================== SENDING NOTIFICATIONS ====================
 
 export async function sendBookingNotification(
-  booking: BookingForTelegram
+  booking: BookingForTelegram,
+  locationChatId?: string | null
 ): Promise<Record<string, number>> {
   const messageIds: Record<string, number> = {};
 
@@ -240,8 +241,11 @@ export async function sendBookingNotification(
     return messageIds;
   }
 
-  if (!groupChatId) {
-    console.error('[telegram] ❌ Cannot send notification: group chat ID not configured');
+  // Use location-specific chatId if provided, otherwise fall back to global groupChatId
+  const targetChatId = locationChatId || groupChatId;
+
+  if (!targetChatId) {
+    console.error('[telegram] ❌ Cannot send notification: no chat ID available (location-specific or global)');
     return messageIds;
   }
 
@@ -256,19 +260,19 @@ export async function sendBookingNotification(
   };
 
   try {
-    console.log(`[telegram] 📤 Sending booking #${booking.id} to group: ${groupChatId}`);
+    console.log(`[telegram] 📤 Sending booking #${booking.id} to chat: ${targetChatId}${locationChatId ? ' (location-specific)' : ' (global)'}`);
     const result = await telegramRequest<SentMessage>('sendMessage', {
-      chat_id: groupChatId,
+      chat_id: targetChatId,
       text,
       parse_mode: 'HTML',
       reply_markup: keyboard,
     });
 
     if (result.ok && result.result?.message_id) {
-      messageIds[groupChatId] = result.result.message_id;
-      console.log(`[telegram] ✅ Group notification sent to ${groupChatId}, msg_id: ${result.result.message_id}`);
+      messageIds[targetChatId] = result.result.message_id;
+      console.log(`[telegram] ✅ Notification sent to ${targetChatId}, msg_id: ${result.result.message_id}`);
     } else {
-      console.error(`[telegram] ❌ Group send failed: ${result.description || 'Unknown error'}`);
+      console.error(`[telegram] ❌ Send failed to ${targetChatId}: ${result.description || 'Unknown error'}`);
     }
   } catch (error) {
     console.error(`[telegram] ❌ Exception sending booking #${booking.id}:`, error);
