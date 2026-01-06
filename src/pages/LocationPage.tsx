@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
-import * as Icons from 'lucide-react';
+import { ArrowLeft, Utensils, Navigation, Instagram, Send, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Navbar } from '../components/layout/Navbar';
 import { Footer } from '../components/layout/Footer';
 import { BookingModal } from '../components/ui/BookingModal';
@@ -161,11 +161,11 @@ export const LocationPage = () => {
 
           {/* Back Button */}
           <div className="absolute top-24 left-4 md:left-10 z-20">
-            <Link 
-              to="/" 
+            <Link
+              to="/"
               className="flex items-center gap-2 text-white/70 hover:text-white transition-colors uppercase tracking-widest text-xs font-bold bg-black/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 hover:border-white/30"
             >
-              <Icons.ArrowLeft size={14} />
+              <ArrowLeft size={14} />
               На главную
             </Link>
           </div>
@@ -196,18 +196,18 @@ export const LocationPage = () => {
                       rel="noopener noreferrer"
                       className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white/5 backdrop-blur-md text-white/90 px-10 py-5 rounded-full font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all duration-300 border border-white/10 hover:border-white/30"
                     >
-                      <Icons.Utensils size={18} />
+                      <Utensils size={18} />
                       Меню
                     </a>
                   )}
 
-                  <a 
+                  <a
                     href={mapLink}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full sm:w-auto flex items-center justify-center gap-2 bg-amber-500/10 hover:bg-amber-500 hover:text-black backdrop-blur-md text-amber-500 px-10 py-5 rounded-full font-bold uppercase tracking-widest transition-all duration-300 border border-amber-500/30 hover:border-amber-500"
                   >
-                    <Icons.Navigation size={18} />
+                    <Navigation size={18} />
                     Доехать
                   </a>
                 </div>
@@ -216,12 +216,12 @@ export const LocationPage = () => {
                 <div className="flex items-center gap-6">
                   {instagramUrl && (
                     <a href={instagramUrl!} target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-amber-500 transition-colors p-3 hover:bg-white/10 rounded-full border border-transparent hover:border-white/10" title="Instagram">
-                      <Icons.Instagram size={24} />
+                      <Instagram size={24} />
                     </a>
                   )}
                   {telegramUrl && (
                     <a href={telegramUrl!} target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-amber-500 transition-colors p-3 hover:bg-white/10 rounded-full border border-transparent hover:border-white/10" title="Telegram">
-                      <Icons.Send size={24} />
+                      <Send size={24} />
                     </a>
                   )}
                   {whatsappUrl && (
@@ -499,17 +499,17 @@ export const LocationPage = () => {
                 </AnimatePresence>
 
                 {/* Navigation Buttons */}
-                <button 
+                <button
                   onClick={prevSlide}
                   className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/30 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-amber-500 hover:text-black transition-all duration-300 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0"
                 >
-                  <Icons.ChevronLeft size={20} />
+                  <ChevronLeft size={20} />
                 </button>
-                <button 
+                <button
                   onClick={nextSlide}
                   className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/30 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-amber-500 hover:text-black transition-all duration-300 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0"
                 >
-                  <Icons.ChevronRight size={20} />
+                  <ChevronRight size={20} />
                 </button>
 
                 {/* Progress Bar */}

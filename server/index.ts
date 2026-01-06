@@ -200,31 +200,6 @@ app.post('/api/upload', async (c) => {
   }
 });
 
-// Legacy upload-url endpoint
-app.post('/api/upload-url', async (c) => {
-  const body = await c.req.json<{ filename: string; contentType: string; folder?: string }>();
-
-  const timestamp = Date.now();
-  const safeName = body.filename.replace(/[^a-zA-Z0-9.-]/g, '_');
-  const filename = `${timestamp}-${safeName}`;
-  const folder = body.folder || '';
-  const publicPath = folder ? `/uploads/${folder}/${filename}` : `/uploads/${filename}`;
-
-  return c.json({
-    url: '/api/upload',
-    key: publicPath,
-    publicUrl: publicPath,
-    file_path: publicPath,
-    requiredHeaders: {},
-  });
-});
-
-// Legacy download-url endpoint
-app.post('/api/download-url', async (c) => {
-  const body = await c.req.json<{ key: string }>();
-  return c.json({ url: body.key });
-});
-
 // ==================== BOOKINGS API ====================
 
 app.post('/api/bookings', async (c) => {
@@ -401,33 +376,6 @@ app.put('/api/booking-settings/:id', async (c) => {
   }
 });
 
-// ==================== CONTENT API ====================
-
-app.post('/api/content', async (c) => {
-  try {
-    const body = await c.req.json();
-    const parsed = ContentSchema.parse(body);
-
-    const content = await readJsonFile<Record<string, unknown>>('content.json', {});
-    content[parsed.key] = parsed.value;
-    await writeJsonFile('content.json', content);
-
-    console.log(`[server] Content saved: ${parsed.key}`);
-    return c.json({ success: true });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return c.json({ error: 'Validation failed', details: error.errors }, 400);
-    }
-    return c.json({ error: 'Failed to save content' }, 500);
-  }
-});
-
-app.get('/api/content/:key', async (c) => {
-  const key = c.req.param('key');
-  const content = await readJsonFile<Record<string, unknown>>('content.json', {});
-  return c.json(content[key] || null);
-});
-
 // ==================== TELEGRAM API ====================
 
 app.get('/api/telegram/status', async (c) => {
@@ -508,19 +456,6 @@ app.post('/api/telegram/stop', async (c) => {
 app.get('/api/telegram/test', async (c) => {
   const result = await telegram.testConnection();
   return c.json(result);
-});
-
-app.post('/api/telegram/setup', async (c) => {
-  console.log('[server] Telegram setup requested');
-  const status = telegram.getStatus();
-  return c.json({
-    telegram_response: {
-      ok: status.configured,
-      description: status.configured
-        ? 'Bot is configured. Use /start, /stop endpoints to control polling.'
-        : 'Bot not configured. Use /api/telegram/configure first.',
-    },
-  });
 });
 
 // ==================== TELEGRAM INITIALIZATION ====================

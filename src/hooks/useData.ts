@@ -125,6 +125,3 @@ export const useData = () => {
     deleteNewsItem,
   };
 };
-
-// Type export for convenience
-export type UseDataReturn = ReturnType<typeof useData>;

@@ -16,13 +16,11 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.19.7",
-    "@types/multer": "^2.0.0",
     "cross-env": "^10.1.0",
     "date-fns": "^4.1.0",
     "framer-motion": "^11.0.8",
     "hono": "^4.11.2",
     "lucide-react": "^0.533.0",
-    "multer": "^2.0.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-helmet-async": "^2.0.5",
@@ -31,6 +29,7 @@
     "zod": "^4.2.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@types/node": "^24.0.14",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",
